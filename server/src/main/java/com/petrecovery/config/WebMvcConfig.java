@@ -35,7 +35,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/post/detail/**",
                         "/api/archive/search",
                         "/api/archive/detail/**",
-                        "/api/stats/**"
+                        "/api/stats/**",
+                        "/api/upload/**"
                 );
     }
 }

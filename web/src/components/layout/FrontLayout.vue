@@ -35,7 +35,7 @@
       <router-view />
     </main>
     <footer class="site-footer">
-      <p>© 2024 流浪动物身份登记与寻宠互助平台</p>
+      <p>© 2026 流浪动物身份登记与寻宠互助平台</p>
     </footer>
   </div>
 </template>

@@ -37,22 +37,28 @@
             <div v-for="msg in messages" :key="msg.id"
                  class="msg-item"
                  :class="{ mine: msg.senderId === userId }">
-              <div class="msg-bubble">
-                <p v-if="msg.msgType === 1" style="color: #e6a23c; font-weight: bold">📌 目击线索</p>
-                <p>{{ msg.content }}</p>
-                <div v-if="msg.cluePhotos" class="clue-photos">
+              <div class="msg-bubble"
+                   :class="{ 'clue-bubble': msg.msgType === 1 }"
+                   @click="msg.msgType === 1 && showClueDetail(msg)">
+                <p v-if="msg.msgType === 1" style="color: #e6a23c; font-weight: bold; margin-bottom: 8px">📌 目击线索</p>
+                <p v-if="msg.content" style="margin-bottom: 8px">{{ msg.content }}</p>
+                <div v-if="msg.cluePhotos && msg.cluePhotos.trim()" class="clue-photos">
                   <el-image
-                    v-for="(url, idx) in msg.cluePhotos.split(',')"
+                    v-for="(url, idx) in parsePhotos(msg.cluePhotos)"
                     :key="idx"
                     :src="url"
-                    :preview-src-list="msg.cluePhotos.split(',')"
+                    :preview-src-list="parsePhotos(msg.cluePhotos)"
                     :initial-index="idx"
-                    style="width: 100px; height: 100px; border-radius: 4px;"
+                    style="width: 120px; height: 120px; border-radius: 6px;"
                     fit="cover"
                     preview-teleported
-                  />
+                  >
+                    <template #error>
+                      <div class="image-error">加载失败</div>
+                    </template>
+                  </el-image>
                 </div>
-                <p v-if="msg.clueAddress" style="font-size: 12px; color: #909399; margin-top: 4px">
+                <p v-if="msg.clueAddress" style="font-size: 12px; color: #909399; margin-top: 6px">
                   📍 {{ msg.clueTime }} · {{ msg.clueAddress }}
                 </p>
                 <small style="color: #c0c4cc; font-size: 11px">{{ msg.createTime }}</small>
@@ -63,11 +69,58 @@
         </el-card>
       </el-col>
     </el-row>
+
+    <!-- 线索详情弹窗 -->
+    <el-dialog v-model="clueDialogVisible" title="📌 目击线索详情" width="560px" destroy-on-close>
+      <div v-if="clueDetail">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="目击描述">
+            {{ clueDetail.content || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="目击时间">
+            {{ clueDetail.clueTime || '未提供' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="目击地点">
+            {{ clueDetail.clueAddress || '未提供' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="提交时间">
+            {{ clueDetail.createTime }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <!-- 现场照片 -->
+        <div style="margin-top: 20px">
+          <h4 style="margin-bottom: 10px; color: #303133">现场照片</h4>
+          <template v-if="clueDetail.cluePhotos && clueDetail.cluePhotos.trim()">
+            <div class="detail-photos">
+              <el-image
+                v-for="(url, idx) in parsePhotos(clueDetail.cluePhotos)"
+                :key="idx"
+                :src="url"
+                :preview-src-list="parsePhotos(clueDetail.cluePhotos)"
+                :initial-index="idx"
+                style="width: 180px; height: 180px; border-radius: 8px;"
+                fit="cover"
+                preview-teleported
+              >
+                <template #error>
+                  <div class="image-error-detail">加载失败</div>
+                </template>
+              </el-image>
+            </div>
+          </template>
+          <p v-else style="color: #909399; font-size: 13px">暂无现场照片</p>
+        </div>
+
+        <!-- 地图定位 -->
+        <div v-if="clueDetail.clueLongitude && clueDetail.clueLatitude" ref="clueMapContainer" style="width: 100%; height: 280px; margin-top: 20px; border-radius: 8px; overflow: hidden"></div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { messageApi } from '@/api/message'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
@@ -79,6 +132,11 @@ const convList = ref([])
 const messages = ref([])
 const currentOtherId = ref(null)
 const userCache = ref({})
+
+// 线索详情弹窗
+const clueDialogVisible = ref(false)
+const clueDetail = ref(null)
+const clueMapContainer = ref(null)
 
 async function getUserInfo(id) {
   if (userCache.value[id]) return userCache.value[id]
@@ -94,6 +152,36 @@ async function getUserInfo(id) {
 
 function getUserName(id) {
   return userCache.value[id]?.nickname || '用户' + id
+}
+
+function parsePhotos(photos) {
+  if (!photos || !photos.trim()) return []
+  return photos.split(',').map(url => url.trim()).filter(Boolean)
+}
+
+function showClueDetail(msg) {
+  clueDetail.value = msg
+  clueDialogVisible.value = true
+  // 弹窗打开后渲染地图
+  nextTick(() => {
+    if (msg.clueLongitude && msg.clueLatitude && clueMapContainer.value) {
+      renderClueMap(msg)
+    }
+  })
+}
+
+function renderClueMap(msg) {
+  const container = clueMapContainer.value
+  if (!container || !window.AMap) return
+  const map = new AMap.Map(container, {
+    zoom: 16,
+    center: [parseFloat(msg.clueLongitude), parseFloat(msg.clueLatitude)]
+  })
+  new AMap.Marker({
+    position: [parseFloat(msg.clueLongitude), parseFloat(msg.clueLatitude)],
+    map,
+    label: { content: '<div style="padding:2px 6px;background:#e6a23c;color:#fff;border-radius:4px;font-size:12px">目击位置</div>', direction: 'top' }
+  })
 }
 
 async function loadConversations() {
@@ -154,5 +242,10 @@ onUnmounted(wsUnsubscribe)
 .msg-item.mine { justify-content: flex-end; }
 .msg-bubble { max-width: 70%; padding: 10px 14px; border-radius: 8px; background: #f0f0f0; }
 .msg-item.mine .msg-bubble { background: #ecf5ff; }
-.clue-photos { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.clue-photos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; padding: 4px; background: #fafafa; border-radius: 6px; }
+.clue-bubble { cursor: pointer; transition: box-shadow 0.2s, transform 0.1s; }
+.clue-bubble:hover { box-shadow: 0 2px 12px rgba(230, 162, 60, 0.25); transform: translateY(-1px); }
+.image-error { width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #c0c4cc; font-size: 12px; }
+.detail-photos { display: flex; gap: 10px; flex-wrap: wrap; padding: 8px; background: #f9f9f9; border-radius: 8px; }
+.image-error-detail { width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #c0c4cc; font-size: 13px; }
 </style>
