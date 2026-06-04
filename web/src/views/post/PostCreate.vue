@@ -22,6 +22,7 @@
             list-type="picture-card"
             :headers="uploadHeaders"
             name="file"
+            accept="image/*"
             :on-success="onUploadSuccess"
             :on-remove="onUploadRemove"
             :before-upload="beforeUpload"

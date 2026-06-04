@@ -59,6 +59,7 @@
             action="/api/upload/image"
             list-type="picture-card"
             name="file"
+            accept="image/*"
             :headers="uploadHeaders"
             :on-success="onCluePhotoSuccess"
             :on-remove="onCluePhotoRemove"

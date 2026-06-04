@@ -27,12 +27,37 @@
             <template v-if="userInfo?.role === 'PENDING_CERT'">认证申请已提交，请等待管理员审核</template>
             <template v-else>申请成为认证用户，获得更多平台权限</template>
           </span>
-          <el-button v-if="userInfo?.role === 'USER'" type="primary" size="small" @click="applyCert" :loading="certLoading">
+          <el-button v-if="userInfo?.role === 'USER'" type="primary" size="small" @click="showCertDialog = true">
             申请认证
           </el-button>
           <el-tag v-else type="warning">审核中</el-tag>
         </div>
       </div>
+
+      <!-- 认证凭证上传弹窗 -->
+      <el-dialog v-model="showCertDialog" title="提交认证凭证" width="500px">
+        <el-upload
+          ref="certUploadRef"
+          action="/api/upload/image"
+          accept="image/*"
+          :auto-upload="true"
+          :on-success="onCertUploadSuccess"
+          :on-error="() => ElMessage.error('上传失败')"
+          :before-upload="beforeCertUpload"
+          list-type="picture-card"
+          :limit="3"
+          multiple
+        >
+          <el-icon><Plus /></el-icon>
+        </el-upload>
+        <p style="font-size: 13px; color: #909399; margin-top: 8px;">请上传相关凭证（最多3张），如身份证明、领养证明等</p>
+        <template #footer>
+          <el-button @click="showCertDialog = false">取消</el-button>
+          <el-button type="primary" :loading="certLoading" :disabled="!certUrls.length" @click="submitCert">
+            提交申请
+          </el-button>
+        </template>
+      </el-dialog>
     </el-card>
 
     <!-- 我的寻宠启事 -->
@@ -92,6 +117,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import { postApi } from '@/api/post'
 import { userApi } from '@/api/user'
 import { useUserStore } from '@/store/user'
@@ -101,6 +127,9 @@ const loading = ref(false)
 const certLoading = ref(false)
 const myPosts = ref([])
 const cluedPosts = ref([])
+const showCertDialog = ref(false)
+const certUrls = ref([])
+const certUploading = ref(false)
 
 const userInfo = computed(() => userStore.userInfo)
 
@@ -132,11 +161,35 @@ async function loadData() {
   loading.value = false
 }
 
-async function applyCert() {
+function onCertUploadSuccess(response) {
+  certUploading.value = false
+  if (response?.code === 200 && response?.data) {
+    certUrls.value.push(response.data)
+  }
+}
+
+function beforeCertUpload(file) {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  if (file.size / 1024 / 1024 >= 5) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return false
+  }
+  certUploading.value = true
+  return true
+}
+
+async function submitCert() {
+  if (!certUrls.value.length) return
   certLoading.value = true
   try {
-    await userApi.applyCertification('')
+    await userApi.applyCertification(certUrls.value.join(','))
     ElMessage.success('认证申请已提交，请等待管理员审核')
+    showCertDialog.value = false
+    certUrls.value = []
     await userStore.fetchProfile()
   } catch { /* ignore */ }
   certLoading.value = false

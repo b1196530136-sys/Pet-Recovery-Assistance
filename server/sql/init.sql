@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS sys_verify_code (
 -- ============================================================
 -- 初始化管理员账号(密码: admin123)
 -- ============================================================
-INSERT INTO sys_user (email, password, nickname, role, status)
+sys_userINSERT INTO sys_user (email, password, nickname, role, status)
 VALUES ('admin@petrecovery.com',
         '$2b$10$JLvIuzkoeunleBDoQ.kdK.EQtpY9ffZrWDARMJzkEKfWxIFwjtjzi',
         '系统管理员', 'ADMIN', 1);

@@ -28,7 +28,16 @@
           </el-select>
         </el-form-item>
         <el-form-item label="现场照片">
-          <el-upload action="#" list-type="picture-card" :auto-upload="false">
+          <el-upload
+            action="/api/upload/image"
+            list-type="picture-card"
+            accept="image/*"
+            name="file"
+            :headers="uploadHeaders"
+            :on-success="onPhotoSuccess"
+            :on-remove="onPhotoRemove"
+            :before-upload="beforePhotoUpload"
+          >
             <el-icon><Plus /></el-icon>
           </el-upload>
         </el-form-item>
@@ -44,14 +53,47 @@
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue'
+import { reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { archiveApi } from '@/api/archive'
+import { useUserStore } from '@/store/user'
 import AmapPicker from '@/components/map/AmapPicker.vue'
 
 const router = useRouter()
-const form = reactive({ animalType: 'cat', healthStatus: '', neuteredStatus: '', placementStatus: 'observing', description: '' })
+const userStore = useUserStore()
+const form = reactive({ animalType: 'cat', healthStatus: '', neuteredStatus: '', placementStatus: 'observing', description: '', photos: '' })
+const photoUrls = reactive([])
 const mapLocation = reactive({ lng: '', lat: '', address: '' })
+
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`
+}))
+
+function beforePhotoUpload(file) {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  if (file.size / 1024 / 1024 >= 5) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return false
+  }
+  return true
+}
+
+function onPhotoSuccess(response) {
+  if (response.code === 200 && response.data) {
+    photoUrls.push(response.data)
+    form.photos = photoUrls.join(',')
+  }
+}
+
+function onPhotoRemove() {
+  photoUrls.pop()
+  form.photos = photoUrls.join(',')
+}
 
 watch(mapLocation, (val) => {
   form.longitude = val.lng

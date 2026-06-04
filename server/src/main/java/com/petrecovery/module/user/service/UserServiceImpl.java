@@ -50,6 +50,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
         SysUser user = getById(userId);
         if (user != null && UserRole.ROLE_USER.equals(user.getRole())) {
             user.setRole(UserRole.ROLE_PENDING_CERT);
+            user.setCertCredentials(credentials);
             return updateById(user);
         }
         return false;

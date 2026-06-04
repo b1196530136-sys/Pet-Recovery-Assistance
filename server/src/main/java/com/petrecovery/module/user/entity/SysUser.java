@@ -16,6 +16,7 @@ public class SysUser {
     private String avatar;
     private String phone;
     private String role;
+    private String certCredentials;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
