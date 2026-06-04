@@ -7,7 +7,9 @@ import com.petrecovery.module.message.mapper.MessageMapper;
 import com.petrecovery.module.message.websocket.ChatWebSocketHandler;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, SysImMessage> implements MessageService {
@@ -37,6 +39,38 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, SysImMessage>
                         .eq(SysImMessage::getReceiverId, userId))
                 .orderByAsc(SysImMessage::getCreateTime);
         return list(wrapper);
+    }
+
+    @Override
+    public List<Map<String, Object>> getConversationList(Long userId) {
+        // 查出用户参与的所有消息
+        List<SysImMessage> all = list(new LambdaQueryWrapper<SysImMessage>()
+                .and(w -> w.eq(SysImMessage::getSenderId, userId)
+                        .or(w2 -> w2.eq(SysImMessage::getReceiverId, userId)))
+                .orderByDesc(SysImMessage::getCreateTime));
+
+        // 按对方用户分组
+        Map<Long, List<SysImMessage>> grouped = all.stream()
+                .collect(Collectors.groupingBy(msg -> msg.getSenderId().equals(userId) ? msg.getReceiverId() : msg.getSenderId()));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        grouped.forEach((otherId, msgs) -> {
+            SysImMessage latest = msgs.get(0);
+            long unread = msgs.stream().filter(m -> m.getReceiverId().equals(userId) && m.getReadStatus() == 0).count();
+            Map<String, Object> conv = new HashMap<>();
+            conv.put("otherId", otherId);
+            conv.put("lastContent", latest.getMsgType() == 1 ? "[线索] " + (latest.getContent() != null ? latest.getContent() : "") : (latest.getContent() != null ? latest.getContent() : ""));
+            conv.put("lastTime", latest.getCreateTime());
+            conv.put("unread", unread);
+            result.add(conv);
+        });
+
+        result.sort((a, b) -> {
+            LocalDateTime ta = (LocalDateTime) a.get("lastTime");
+            LocalDateTime tb = (LocalDateTime) b.get("lastTime");
+            return tb.compareTo(ta);
+        });
+        return result;
     }
 
     @Override

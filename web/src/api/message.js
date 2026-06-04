@@ -7,6 +7,9 @@ export const messageApi = {
   conversation(otherUserId) {
     return request.get(`/im/conversation/${otherUserId}`)
   },
+  conversations() {
+    return request.get('/im/conversations')
+  },
   unread() {
     return request.get('/im/unread')
   },

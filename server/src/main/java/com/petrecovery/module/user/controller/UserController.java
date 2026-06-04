@@ -59,6 +59,15 @@ public class UserController {
         return Result.success(toSafeMap(user));
     }
 
+    @GetMapping("/info/{id}")
+    public Result<?> info(@PathVariable Long id) {
+        SysUser user = userService.getById(id);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        return Result.success(toSafeMap(user));
+    }
+
     @PostMapping("/apply-certification")
     public Result<?> applyCertification(HttpServletRequest request, @RequestBody Map<String, String> body) {
         Long userId = (Long) request.getAttribute("userId");

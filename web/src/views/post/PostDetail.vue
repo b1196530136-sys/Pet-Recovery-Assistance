@@ -48,13 +48,22 @@
     <el-dialog v-model="showClueDialog" title="提供线索" width="500px">
       <el-form :model="clueForm" label-width="100px">
         <el-form-item label="目击时间" required>
-          <el-date-picker v-model="clueForm.clueTime" type="datetime" placeholder="选择时间" />
+          <el-date-picker v-model="clueForm.clueTime" type="datetime" placeholder="选择时间" value-format="YYYY-MM-DD HH:mm:ss" />
         </el-form-item>
         <el-form-item label="目击地点" required>
           <AmapPicker v-model="clueMapLocation" />
         </el-form-item>
         <el-form-item label="现场照片">
-          <el-upload action="#" list-type="picture-card" :auto-upload="false">
+          <el-upload
+            ref="clueUploadRef"
+            action="/api/upload/image"
+            list-type="picture-card"
+            name="file"
+            :headers="uploadHeaders"
+            :on-success="onCluePhotoSuccess"
+            :on-remove="onCluePhotoRemove"
+            :before-upload="beforeClueUpload"
+          >
             <el-icon><Plus /></el-icon>
           </el-upload>
         </el-form-item>
@@ -71,8 +80,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { postApi } from '@/api/post'
 import { messageApi } from '@/api/message'
 import { useUserStore } from '@/store/user'
@@ -89,6 +99,11 @@ const mapContainer = ref(null)
 const showClueDialog = ref(false)
 const clueForm = ref({ clueTime: '', content: '' })
 const clueMapLocation = ref({ lng: '', lat: '', address: '' })
+const clueUploadRef = ref(null)
+const cluePhotoUrls = ref([])
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`
+}))
 
 const statusMap = { PENDING: '待审核', ACTIVE: '寻找中', REJECTED: '已驳回', RESOLVED: '已找到' }
 const typeMap = { cat: '猫', dog: '狗', other: '其他' }
@@ -97,12 +112,37 @@ function tagType(status) {
   return { PENDING: 'warning', ACTIVE: 'primary', REJECTED: 'danger', RESOLVED: 'success' }[status] || 'info'
 }
 
+function beforeClueUpload(file) {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  return file.size / 1024 / 1024 < 5 || (ElMessage.error('图片大小不能超过 5MB'), false)
+}
+
+function onCluePhotoSuccess(response, file) {
+  if (response.code === 200 && response.data) {
+    cluePhotoUrls.value.push(response.data)
+    file.url = response.data
+  }
+}
+
+function onCluePhotoRemove(_file, fileList) {
+  cluePhotoUrls.value = fileList.map(f => f.url).filter(Boolean)
+}
+
 async function submitClue() {
   const data = {
     postId: post.value.id,
     receiverId: post.value.userId,
     content: clueForm.value.content,
-    clueTime: clueForm.value.clueTime,
+  }
+  if (clueForm.value.clueTime) {
+    data.clueTime = clueForm.value.clueTime
+  }
+  if (cluePhotoUrls.value.length) {
+    data.cluePhotos = cluePhotoUrls.value.join(',')
   }
   if (clueMapLocation.value.lng && clueMapLocation.value.lat) {
     data.clueLongitude = clueMapLocation.value.lng
@@ -112,6 +152,7 @@ async function submitClue() {
   await messageApi.send(data)
   ElMessage.success('线索已提交，将通过私信发送给失主')
   showClueDialog.value = false
+  cluePhotoUrls.value = []
 }
 
 async function handleResolve() {

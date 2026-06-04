@@ -37,6 +37,12 @@ public class MessageController {
         return Result.success(messageService.getUnreadMessages(userId));
     }
 
+    @GetMapping("/conversations")
+    public Result<?> conversations(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(messageService.getConversationList(userId));
+    }
+
     @PostMapping("/read/{messageId}")
     public Result<?> markRead(@PathVariable Long messageId, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");

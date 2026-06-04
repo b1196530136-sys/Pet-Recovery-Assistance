@@ -16,4 +16,7 @@ export const userApi = {
   applyCertification(credentials) {
     return request.post('/user/apply-certification', { credentials })
   },
+  getUserInfo(id) {
+    return request.get(`/user/info/${id}`)
+  },
 }
