@@ -18,11 +18,19 @@
         </el-form-item>
         <el-form-item label="照片">
           <el-upload action="#" list-type="picture-card" :auto-upload="false">
-            <el-icon><Plus /></el-icon>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <el-icon><Plus /></el-icon>
+              <span style="font-size: 12px; color: #909399; margin-top: 4px;">点击上传照片</span>
+            </div>
           </el-upload>
         </el-form-item>
         <el-form-item label="丢失时间" required>
-          <el-date-picker v-model="form.lostTime" type="datetime" placeholder="选择丢失时间" />
+          <el-date-picker
+            v-model="form.lostTime"
+            type="datetime"
+            placeholder="选择丢失时间"
+            :disabled-date="disabledFutureDate"
+          />
         </el-form-item>
         <el-form-item label="丢失地点" required>
           <AmapPicker v-model="mapLocation" />
@@ -49,6 +57,10 @@ import AmapPicker from '@/components/map/AmapPicker.vue'
 
 const router = useRouter()
 const form = reactive({ petType: 'cat', breed: '', petName: '', lostTime: '', reward: '', description: '' })
+
+function disabledFutureDate(time) {
+  return time.getTime() > Date.now()
+}
 const mapLocation = reactive({ lng: '', lat: '', address: '' })
 
 watch(mapLocation, (val) => {
