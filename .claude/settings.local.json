@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip3 list *)",
+      "Bash(pip list *)",
+      "Bash(mv \"F:/Pet Recovery Assurance/server/src/main/java/com/petrecovery/common/Result.java\" \"F:/Pet Recovery Assistance/server/src/main/java/com/petrecovery/common/Result.java\")",
+      "Bash(rmdir \"F:/Pet Recovery Assurance/server/src/main/java/com/petrecovery/common\")",
+      "Bash(rmdir \"F:/Pet Recovery Assurance/server/src/main/java/com/petrecovery\")",
+      "Bash(rmdir \"F:/Pet Recovery Assurance/server/src/main/java\")",
+      "Bash(rmdir \"F:/Pet Recovery Assurance/server/src/main\")"
+    ]
+  }
+}
