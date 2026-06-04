@@ -1,5 +1,5 @@
 <template>
-  <div class="post-create-page" style="max-width: 800px; margin: 0 auto">
+  <div class="post-create-page" style="max-width: 950px; margin: 0 auto">
     <h2 style="margin-bottom: 20px">发布寻宠启事</h2>
     <el-card>
       <el-form :model="form" label-width="100px">
