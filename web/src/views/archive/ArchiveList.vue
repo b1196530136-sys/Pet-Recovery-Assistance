@@ -60,7 +60,7 @@ const placementMap = { observing: '原地观察', sheltered: '基地收容', ado
 
 function handleRegister() {
   if (!userStore.isLoggedIn || (userStore.userInfo?.role !== 'CERTIFIED' && userStore.userInfo?.role !== 'ADMIN')) {
-    ElMessageBox.alert('权限不足！', '提示', { type: 'warning', confirmButtonText: '确定' })
+    ElMessageBox.alert('权限不足！（需要成为认证用户）', '提示', { type: 'warning', confirmButtonText: '确定' })
     return
   }
   router.push('/archives/create')

@@ -11,14 +11,29 @@
             <el-radio value="other">其他</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="发现位置" required>
-          <AmapPicker v-model="mapLocation" />
+        <el-form-item label="发现位置" required style="flex-direction: column; align-items: stretch;">
+          <div style="width: 100%;">
+            <AmapPicker v-model="mapLocation" />
+          </div>
         </el-form-item>
         <el-form-item label="健康状况">
-          <el-input v-model="form.healthStatus" placeholder="如: 良好/受伤/体弱" />
+          <el-select v-model="form.healthStatus" placeholder="请选择" clearable>
+            <el-option label="良好" value="良好" />
+            <el-option label="受伤" value="受伤" />
+            <el-option label="体弱" value="体弱" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="绝育/免疫">
-          <el-input v-model="form.neuteredStatus" placeholder="如: 已绝育/已免疫" />
+        <el-form-item label="绝育状态">
+          <el-select v-model="form.neuteredStatus" placeholder="请选择" clearable>
+            <el-option label="已绝育" value="已绝育" />
+            <el-option label="未绝育" value="未绝育" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="免疫状态">
+          <el-select v-model="form.immuneStatus" placeholder="请选择" clearable>
+            <el-option label="已免疫" value="已免疫" />
+            <el-option label="未免疫" value="未免疫" />
+          </el-select>
         </el-form-item>
         <el-form-item label="安置状态" required>
           <el-select v-model="form.placementStatus">
@@ -38,7 +53,10 @@
             :on-remove="onPhotoRemove"
             :before-upload="beforePhotoUpload"
           >
-            <el-icon><Plus /></el-icon>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <el-icon><Plus /></el-icon>
+              <span style="font-size: 12px; color: #909399; margin-top: 4px;">点击上传图片</span>
+            </div>
           </el-upload>
         </el-form-item>
         <el-form-item label="备注描述">
@@ -62,7 +80,7 @@ import AmapPicker from '@/components/map/AmapPicker.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
-const form = reactive({ animalType: 'cat', healthStatus: '', neuteredStatus: '', placementStatus: 'observing', description: '', photos: '' })
+const form = reactive({ animalType: 'cat', healthStatus: '', neuteredStatus: '', immuneStatus: '', placementStatus: 'observing', description: '', photos: '', longitude: '', latitude: '', address: '' })
 const photoUrls = reactive([])
 const mapLocation = reactive({ lng: '', lat: '', address: '' })
 

@@ -65,7 +65,10 @@
             :on-remove="onCluePhotoRemove"
             :before-upload="beforeClueUpload"
           >
-            <el-icon><Plus /></el-icon>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <el-icon><Plus /></el-icon>
+              <span style="font-size: 12px; color: #909399; margin-top: 4px;">点击上传图片</span>
+            </div>
           </el-upload>
         </el-form-item>
         <el-form-item label="目击描述">

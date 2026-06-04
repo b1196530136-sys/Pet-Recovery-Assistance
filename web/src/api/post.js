@@ -19,4 +19,7 @@ export const postApi = {
   clued() {
     return request.get('/post/clued')
   },
+  delete(id) {
+    return request.post(`/post/delete/${id}`)
+  },
 }

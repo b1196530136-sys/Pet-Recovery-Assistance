@@ -14,4 +14,5 @@ public interface PostService extends IService<PetSearchPost> {
     boolean resolvePost(Long postId, Long userId);
     List<PetSearchPost> getMyPosts(Long userId);
     List<PetSearchPost> getCluedPosts(Long userId);
+    boolean deletePost(Long postId, Long userId);
 }

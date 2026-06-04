@@ -89,4 +89,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> impl
                 .in(PetSearchPost::getId, postIds)
                 .orderByDesc(PetSearchPost::getCreateTime));
     }
+
+    @Override
+    public boolean deletePost(Long postId, Long userId) {
+        PetSearchPost post = getById(postId);
+        if (post != null && post.getUserId().equals(userId)) {
+            return removeById(postId);
+        }
+        return false;
+    }
 }

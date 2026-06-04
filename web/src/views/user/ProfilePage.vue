@@ -48,9 +48,12 @@
           :limit="3"
           multiple
         >
-          <el-icon><Plus /></el-icon>
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <el-icon><Plus /></el-icon>
+            <span style="font-size: 12px; color: #909399; margin-top: 4px;">点击上传图片</span>
+          </div>
         </el-upload>
-        <p style="font-size: 13px; color: #909399; margin-top: 8px;">请上传相关凭证（最多3张），如身份证明、领养证明等</p>
+        <p style="font-size: 13px; color: #909399; margin-top: 8px;">请上传相关凭证（最多3张）</p>
         <template #footer>
           <el-button @click="showCertDialog = false">取消</el-button>
           <el-button type="primary" :loading="certLoading" :disabled="!certUrls.length" @click="submitCert">
@@ -77,9 +80,10 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="发布时间" width="170" />
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" width="160">
           <template #default="{ row }">
             <el-button size="small" @click="$router.push(`/posts/${row.id}`)">查看</el-button>
+            <el-button v-if="row.status === 'RESOLVED' || row.status === 'REJECTED'" size="small" type="danger" @click="handleDeletePost(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -103,9 +107,10 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="发布时间" width="170" />
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" width="160">
           <template #default="{ row }">
             <el-button size="small" @click="$router.push(`/posts/${row.id}`)">查看</el-button>
+            <el-button v-if="row.status === 'RESOLVED' || row.status === 'REJECTED'" size="small" type="danger" @click="handleDeleteCluedPost(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -116,7 +121,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { postApi } from '@/api/post'
 import { userApi } from '@/api/user'
@@ -193,6 +198,28 @@ async function submitCert() {
     await userStore.fetchProfile()
   } catch { /* ignore */ }
   certLoading.value = false
+}
+
+async function handleDeletePost(row) {
+  try {
+    await ElMessageBox.confirm('确定要删除这条寻宠启事吗？', '提示', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
+  } catch { return }
+  try {
+    await postApi.delete(row.id)
+    ElMessage.success('删除成功')
+    myPosts.value = myPosts.value.filter(p => p.id !== row.id)
+  } catch { /* ignore */ }
+}
+
+async function handleDeleteCluedPost(row) {
+  try {
+    await ElMessageBox.confirm('确定要删除这条寻宠启事吗？', '提示', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
+  } catch { return }
+  try {
+    await postApi.delete(row.id)
+    ElMessage.success('删除成功')
+    cluedPosts.value = cluedPosts.value.filter(p => p.id !== row.id)
+  } catch { /* ignore */ }
 }
 
 onMounted(loadData)

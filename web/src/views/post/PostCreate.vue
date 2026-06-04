@@ -41,8 +41,10 @@
             :disabled-date="disabledFutureDate"
           />
         </el-form-item>
-        <el-form-item label="丢失地点" required>
-          <AmapPicker v-model="mapLocation" />
+        <el-form-item label="丢失地点" required style="flex-direction: column; align-items: stretch;">
+          <div style="width: 100%;">
+            <AmapPicker v-model="mapLocation" />
+          </div>
         </el-form-item>
         <el-form-item label="酬金说明">
           <el-input v-model="form.reward" placeholder="可选" />
@@ -68,7 +70,7 @@ import AmapPicker from '@/components/map/AmapPicker.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
-const form = reactive({ petType: 'cat', breed: '', petName: '', lostTime: '', reward: '', description: '', photos: '' })
+const form = reactive({ petType: 'cat', breed: '', petName: '', lostTime: '', reward: '', description: '', photos: '', longitude: '', latitude: '', address: '' })
 const photoUrls = reactive([])
 
 const uploadHeaders = computed(() => ({

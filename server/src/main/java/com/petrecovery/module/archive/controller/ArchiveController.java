@@ -41,4 +41,13 @@ public class ArchiveController {
     public Result<?> detail(@PathVariable Long id) {
         return Result.success(archiveService.getById(id));
     }
+
+    @GetMapping("/pending")
+    public Result<?> pending(@RequestParam(defaultValue = "1") int page,
+                             @RequestParam(defaultValue = "100") int size) {
+        LambdaQueryWrapper<StrayAnimalArchive> wrapper = new LambdaQueryWrapper<StrayAnimalArchive>()
+                .eq(StrayAnimalArchive::getStatus, "PENDING")
+                .orderByDesc(StrayAnimalArchive::getCreateTime);
+        return Result.success(archiveService.page(new Page<>(page, size), wrapper));
+    }
 }

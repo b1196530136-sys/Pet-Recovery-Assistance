@@ -10,4 +10,7 @@ export const archiveApi = {
   detail(id) {
     return request.get(`/archive/detail/${id}`)
   },
+  pending(params) {
+    return request.get('/archive/pending', { params })
+  },
 }

@@ -51,4 +51,11 @@ public class PostController {
         Long userId = (Long) request.getAttribute("userId");
         return Result.success(postService.getCluedPosts(userId));
     }
+
+    @PostMapping("/delete/{id}")
+    public Result<?> delete(@PathVariable Long id, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        postService.deletePost(id, userId);
+        return Result.success();
+    }
 }
