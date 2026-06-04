@@ -44,6 +44,12 @@ public class AdminController {
     }
 
     // ===== 认证审批 =====
+    @GetMapping("/certification/pending")
+    public Result<?> pendingCertifications(HttpServletRequest request) {
+        checkAdmin(request);
+        return Result.success(adminService.getPendingCertUsers());
+    }
+
     @PostMapping("/certification/review/{userId}")
     public Result<?> reviewCertification(@PathVariable Long userId, @RequestParam String action,
                                          HttpServletRequest request) {

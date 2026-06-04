@@ -55,9 +55,15 @@ public class AdminService {
         }
     }
 
+    public List<SysUser> getPendingCertUsers() {
+        return userMapper.selectList(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getRole, UserRole.ROLE_PENDING_CERT));
+    }
+
     public void reviewCertification(Long userId, String action) {
         SysUser user = userMapper.selectById(userId);
-        if (user != null && "APPROVED".equals(action)) {
+        if (user != null && "APPROVED".equals(action)
+                && UserRole.ROLE_PENDING_CERT.equals(user.getRole())) {
             user.setRole(UserRole.ROLE_CERTIFIED);
             userMapper.updateById(user);
         }

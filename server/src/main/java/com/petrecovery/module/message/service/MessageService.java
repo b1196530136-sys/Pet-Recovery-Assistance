@@ -7,6 +7,7 @@ import java.util.Map;
 
 public interface MessageService extends IService<SysImMessage> {
     SysImMessage sendClueMessage(SysImMessage message);
+    SysImMessage sendNormalMessage(SysImMessage message);
     List<SysImMessage> getConversation(Long userId, Long otherUserId);
     List<SysImMessage> getUnreadMessages(Long userId);
     List<Map<String, Object>> getConversationList(Long userId);

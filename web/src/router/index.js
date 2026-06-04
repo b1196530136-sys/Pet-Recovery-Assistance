@@ -14,6 +14,7 @@ const routes = [
       { path: 'archives/:id', name: 'ArchiveDetail', component: () => import('@/views/archive/ArchiveDetail.vue') },
       { path: 'archives/create', name: 'ArchiveCreate', component: () => import('@/views/archive/ArchiveCreate.vue') },
       { path: 'messages', name: 'MessageCenter', component: () => import('@/views/message/MessageCenter.vue') },
+      { path: 'profile', name: 'Profile', component: () => import('@/views/user/ProfilePage.vue') },
     ],
   },
   {

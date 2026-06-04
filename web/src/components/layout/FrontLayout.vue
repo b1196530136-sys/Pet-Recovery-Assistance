@@ -11,10 +11,10 @@
         </nav>
         <div class="header-right">
           <template v-if="userStore.isLoggedIn">
-            <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="msg-badge">
+            <el-badge :value="userStore.unreadCount" :hidden="userStore.unreadCount === 0" class="msg-badge">
               <router-link to="/messages">消息</router-link>
             </el-badge>
-            <div class="user-block">
+            <div class="user-block" @click="$router.push('/profile')" style="cursor: pointer">
               <el-avatar :size="32" :src="userStore.userInfo?.avatar" class="user-avatar">
                 {{ displayName.charAt(0) }}
               </el-avatar>
@@ -41,15 +41,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import { messageApi } from '@/api/message'
 import { onMessage } from '@/utils/websocket'
 
 const userStore = useUserStore()
 const router = useRouter()
-const unreadCount = ref(0)
 
 const displayName = computed(() => {
   const info = userStore.userInfo
@@ -59,7 +57,7 @@ const displayName = computed(() => {
 })
 
 const roleLabel = computed(() => {
-  const map = { USER: '普通用户', CERTIFIED: '认证用户', ADMIN: '管理员' }
+  const map = { USER: '普通用户', PENDING_CERT: '认证审核中', CERTIFIED: '认证用户', ADMIN: '管理员' }
   return '权限：' + (map[userStore.userInfo?.role] || '未知')
 })
 
@@ -68,17 +66,10 @@ function handleLogout() {
   router.push('/auth/login')
 }
 
-async function fetchUnread() {
-  try {
-    const res = await messageApi.unread()
-    unreadCount.value = res.data?.length || 0
-  } catch { /* ignore */ }
-}
-
 onMounted(() => {
   if (userStore.isLoggedIn) {
-    fetchUnread()
-    onMessage(() => fetchUnread())
+    userStore.fetchUnread()
+    onMessage(() => userStore.fetchUnread())
   }
 })
 </script>

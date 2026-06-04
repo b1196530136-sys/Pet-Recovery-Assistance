@@ -10,6 +10,9 @@ export const adminApi = {
     return request.post(`/admin/archive/review/${archiveId}`, null, { params: { action, reason } })
   },
   // 认证审批
+  pendingCertifications() {
+    return request.get('/admin/certification/pending')
+  },
   reviewCertification(userId, action) {
     return request.post(`/admin/certification/review/${userId}`, null, { params: { action } })
   },

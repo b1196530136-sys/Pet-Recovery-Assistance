@@ -1,14 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { userApi } from '@/api/user'
+import { messageApi } from '@/api/message'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref('')
   const userInfo = ref(null)
+  const unreadCount = ref(0)
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => userInfo.value?.role === 'ADMIN')
   const isCertified = computed(() => userInfo.value?.role === 'CERTIFIED' || userInfo.value?.role === 'ADMIN')
+  const isPendingCert = computed(() => userInfo.value?.role === 'PENDING_CERT')
 
   function setToken(t) {
     token.value = t
@@ -43,6 +46,13 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function fetchUnread() {
+    try {
+      const res = await messageApi.unread()
+      unreadCount.value = res.data?.length || 0
+    } catch { /* ignore */ }
+  }
+
   async function login(credentials) {
     const res = await userApi.login(credentials)
     setToken(res.data.token)
@@ -61,5 +71,5 @@ export const useUserStore = defineStore('user', () => {
     clearToken()
   }
 
-  return { token, userInfo, isLoggedIn, isAdmin, isCertified, setToken, clearToken, restoreSession, fetchProfile, login, loginByCode, logout }
+  return { token, userInfo, unreadCount, isLoggedIn, isAdmin, isCertified, isPendingCert, setToken, clearToken, restoreSession, fetchProfile, fetchUnread, login, loginByCode, logout }
 })

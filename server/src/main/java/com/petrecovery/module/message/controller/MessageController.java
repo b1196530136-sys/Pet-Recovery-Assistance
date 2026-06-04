@@ -22,7 +22,11 @@ public class MessageController {
     public Result<?> send(@RequestBody SysImMessage message, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         message.setSenderId(userId);
-        return Result.success(messageService.sendClueMessage(message));
+        // msgType=1 为线索消息，否则为普通消息
+        if (message.getMsgType() != null && message.getMsgType() == 1) {
+            return Result.success(messageService.sendClueMessage(message));
+        }
+        return Result.success(messageService.sendNormalMessage(message));
     }
 
     @GetMapping("/conversation/{otherUserId}")

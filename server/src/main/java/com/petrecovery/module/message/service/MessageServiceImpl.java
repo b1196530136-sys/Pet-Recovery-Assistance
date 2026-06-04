@@ -31,6 +31,15 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, SysImMessage>
     }
 
     @Override
+    public SysImMessage sendNormalMessage(SysImMessage message) {
+        message.setReadStatus(0);
+        message.setMsgType(0);
+        save(message);
+        chatWebSocketHandler.sendMessage(message.getReceiverId(), message);
+        return message;
+    }
+
+    @Override
     public List<SysImMessage> getConversation(Long userId, Long otherUserId) {
         LambdaQueryWrapper<SysImMessage> wrapper = new LambdaQueryWrapper<SysImMessage>()
                 .and(w -> w.eq(SysImMessage::getSenderId, userId)

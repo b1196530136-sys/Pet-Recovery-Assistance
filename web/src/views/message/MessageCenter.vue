@@ -66,6 +66,17 @@
             </div>
           </div>
           <el-empty v-else description="选择会话查看消息" />
+
+          <!-- 发送消息输入框 -->
+          <div v-if="currentOtherId" class="msg-input-bar">
+            <el-input
+              v-model="inputText"
+              placeholder="输入消息..."
+              @keyup.enter="sendNormalMessage"
+              clearable
+            />
+            <el-button type="primary" @click="sendNormalMessage" :disabled="!inputText.trim()">发送</el-button>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -138,6 +149,9 @@ const clueDialogVisible = ref(false)
 const clueDetail = ref(null)
 const clueMapContainer = ref(null)
 
+// 普通消息输入
+const inputText = ref('')
+
 async function getUserInfo(id) {
   if (userCache.value[id]) return userCache.value[id]
   try {
@@ -199,39 +213,109 @@ async function selectConvByUser(otherId) {
   const res = await messageApi.conversation(otherId)
   messages.value = res.data
   await getUserInfo(otherId)
-  // 将该用户的所有未读消息标记为已读
-  for (const conv of convList.value) {
-    if (conv.otherId === otherId && conv.unread > 0) {
-      // 获取该用户的未读消息 ID 逐个标记
-      const unreadRes = await messageApi.unread()
-      for (const msg of (unreadRes.data || [])) {
-        const oid = msg.senderId === userId.value ? msg.receiverId : msg.senderId
-        if (oid === otherId) {
-          await messageApi.markRead(msg.id)
-        }
-      }
-      break
+  // 立即清除当前会话的本地未读标记（UI 立即更新）
+  const conv = convList.value.find(c => c.otherId === otherId)
+  if (conv && conv.unread > 0) {
+    conv.unread = 0
+  }
+  // 将该用户的所有未读消息标记为已读（后端）
+  const unreadRes = await messageApi.unread()
+  for (const msg of (unreadRes.data || [])) {
+    const oid = msg.senderId === userId.value ? msg.receiverId : msg.senderId
+    if (oid === otherId) {
+      try { await messageApi.markRead(msg.id) } catch { /* ignore */ }
     }
   }
   loadConversations()
+  userStore.fetchUnread() // 刷新导航栏红点
+  scrollToBottom()
+}
+
+async function sendNormalMessage() {
+  const text = inputText.value.trim()
+  if (!text || !currentOtherId.value) return
+  try {
+    const res = await messageApi.send({
+      receiverId: currentOtherId.value,
+      content: text,
+      msgType: 0
+    })
+    inputText.value = ''
+    // 将发送的消息直接添加到列表（避免全量刷新）
+    if (res.data) {
+      const exists = messages.value.some(m => m.id === res.data.id)
+      if (!exists) {
+        messages.value.push(res.data)
+      }
+    }
+    loadConversations()
+    scrollToBottom()
+  } catch {
+    // ignore
+  }
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    const list = document.querySelector('.msg-list')
+    if (list) list.scrollTop = list.scrollHeight
+  })
 }
 
 onMounted(async () => {
   await loadConversations()
+  // 确保 WebSocket 已连接
+  import('@/utils/websocket').then(({ initWebSocket }) => {
+    if (userStore.token) initWebSocket(userStore.token)
+  })
+  // 轮询兜底：每 5 秒检查新消息
+  pollTimer = setInterval(async () => {
+    if (currentOtherId.value) {
+      try {
+        const res = await messageApi.conversation(currentOtherId.value)
+        const newMsgs = res.data || []
+        // 只追加新消息
+        const existIds = new Set(messages.value.map(m => m.id))
+        let hasNew = false
+        for (const m of newMsgs) {
+          if (!existIds.has(m.id)) {
+            messages.value.push(m)
+            hasNew = true
+          }
+        }
+        if (hasNew) scrollToBottom()
+      } catch { /* ignore */ }
+    }
+    loadConversations()
+  }, 5000)
 })
+
+let pollTimer = null
 
 // 监听 WebSocket 新消息推送，实时更新
 const wsUnsubscribe = onMessage((msg) => {
-  if (msg.receiverId === userId.value || msg.senderId === userId.value) {
-    loadConversations()
-    if (currentOtherId.value &&
-        (msg.senderId === currentOtherId.value || msg.receiverId === currentOtherId.value)) {
+  // 只处理与当前用户相关的消息
+  if (msg.receiverId !== userId.value && msg.senderId !== userId.value) return
+
+  // 刷新会话列表
+  loadConversations()
+
+  // 如果消息属于当前打开的会话，添加到消息列表
+  if (currentOtherId.value &&
+      (msg.senderId === currentOtherId.value || msg.receiverId === currentOtherId.value)) {
+    // 避免重复：sendNormalMessage 已通过 API 响应刷新了消息列表
+    const exists = messages.value.some(m => m.id === msg.id)
+    if (!exists) {
       messages.value.push(msg)
+      scrollToBottom()
     }
   }
 })
 
-onUnmounted(wsUnsubscribe)
+onUnmounted(() => {
+  wsUnsubscribe()
+  clearInterval(pollTimer)
+})
 </script>
 
 <style scoped>
@@ -248,4 +332,6 @@ onUnmounted(wsUnsubscribe)
 .image-error { width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #c0c4cc; font-size: 12px; }
 .detail-photos { display: flex; gap: 10px; flex-wrap: wrap; padding: 8px; background: #f9f9f9; border-radius: 8px; }
 .image-error-detail { width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #c0c4cc; font-size: 13px; }
+.msg-input-bar { display: flex; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #ebeef5; align-items: center; }
+.msg-input-bar .el-input { flex: 1; }
 </style>

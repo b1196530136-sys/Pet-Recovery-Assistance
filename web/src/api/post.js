@@ -13,4 +13,10 @@ export const postApi = {
   resolve(id) {
     return request.post(`/post/resolve/${id}`)
   },
+  my() {
+    return request.get('/post/my')
+  },
+  clued() {
+    return request.get('/post/clued')
+  },
 }

@@ -39,4 +39,16 @@ public class PostController {
         postService.resolvePost(id, userId);
         return Result.success();
     }
+
+    @GetMapping("/my")
+    public Result<?> myPosts(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(postService.getMyPosts(userId));
+    }
+
+    @GetMapping("/clued")
+    public Result<?> cluedPosts(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(postService.getCluedPosts(userId));
+    }
 }

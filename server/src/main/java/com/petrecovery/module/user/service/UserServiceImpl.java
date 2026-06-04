@@ -49,7 +49,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
     public boolean applyCertification(Long userId, String credentials) {
         SysUser user = getById(userId);
         if (user != null && UserRole.ROLE_USER.equals(user.getRole())) {
-            user.setRole(UserRole.ROLE_CERTIFIED);
+            user.setRole(UserRole.ROLE_PENDING_CERT);
             return updateById(user);
         }
         return false;
