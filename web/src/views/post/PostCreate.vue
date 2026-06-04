@@ -17,7 +17,15 @@
           <el-input v-model="form.petName" placeholder="宠物的名字" />
         </el-form-item>
         <el-form-item label="照片">
-          <el-upload action="#" list-type="picture-card" :auto-upload="false">
+          <el-upload
+            action="/api/upload/image"
+            list-type="picture-card"
+            :headers="uploadHeaders"
+            name="file"
+            :on-success="onUploadSuccess"
+            :on-remove="onUploadRemove"
+            :before-upload="beforeUpload"
+          >
             <div style="display: flex; flex-direction: column; align-items: center;">
               <el-icon><Plus /></el-icon>
               <span style="font-size: 12px; color: #909399; margin-top: 4px;">点击上传照片</span>
@@ -50,17 +58,53 @@
 </template>
 
 <script setup>
-import { reactive, watch } from 'vue'
+import { reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { postApi } from '@/api/post'
+import { useUserStore } from '@/store/user'
 import AmapPicker from '@/components/map/AmapPicker.vue'
 
 const router = useRouter()
-const form = reactive({ petType: 'cat', breed: '', petName: '', lostTime: '', reward: '', description: '' })
+const userStore = useUserStore()
+const form = reactive({ petType: 'cat', breed: '', petName: '', lostTime: '', reward: '', description: '', photos: '' })
+const photoUrls = reactive([])
+
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`
+}))
+
+function beforeUpload(file) {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  const isLt5M = file.size / 1024 / 1024 < 5
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return false
+  }
+  return true
+}
+
+function onUploadSuccess(response) {
+  if (response.code === 200 && response.data) {
+    photoUrls.push(response.data)
+    form.photos = photoUrls.join(',')
+  }
+}
+
+function onUploadRemove() {
+  // 重新从当前上传列表构建photoUrls（简化处理）
+  photoUrls.pop()
+  form.photos = photoUrls.join(',')
+}
 
 function disabledFutureDate(time) {
   return time.getTime() > Date.now()
 }
+
 const mapLocation = reactive({ lng: '', lat: '', address: '' })
 
 watch(mapLocation, (val) => {

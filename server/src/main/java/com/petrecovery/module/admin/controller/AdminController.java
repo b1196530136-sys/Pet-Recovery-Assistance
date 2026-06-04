@@ -25,7 +25,7 @@ public class AdminController {
 
     // ===== 寻宠启事审核 =====
     @PostMapping("/post/review/{postId}")
-    public Result<?> reviewPost(@PathVariable Long postId, @RequestBody String action,
+    public Result<?> reviewPost(@PathVariable Long postId, @RequestParam String action,
                                 @RequestParam(required = false) String reason,
                                 HttpServletRequest request) {
         checkAdmin(request);
@@ -35,7 +35,7 @@ public class AdminController {
 
     // ===== 档案审核 =====
     @PostMapping("/archive/review/{archiveId}")
-    public Result<?> reviewArchive(@PathVariable Long archiveId, @RequestBody String action,
+    public Result<?> reviewArchive(@PathVariable Long archiveId, @RequestParam String action,
                                    @RequestParam(required = false) String reason,
                                    HttpServletRequest request) {
         checkAdmin(request);
@@ -45,7 +45,7 @@ public class AdminController {
 
     // ===== 认证审批 =====
     @PostMapping("/certification/review/{userId}")
-    public Result<?> reviewCertification(@PathVariable Long userId, @RequestBody String action,
+    public Result<?> reviewCertification(@PathVariable Long userId, @RequestParam String action,
                                          HttpServletRequest request) {
         checkAdmin(request);
         adminService.reviewCertification(userId, action);

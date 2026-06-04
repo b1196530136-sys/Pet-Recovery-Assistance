@@ -6,7 +6,7 @@
           <h2>{{ post.petName || ' unnamed ' }}({{ typeMap[post.petType] }})</h2>
           <el-tag :type="tagType(post.status)">{{ statusMap[post.status] }}</el-tag>
         </div>
-        <div v-if="post.status === 'ACTIVE' && userStore.isLoggedIn" style="margin-top: 16px">
+        <div v-if="post.status === 'ACTIVE' && userStore.isLoggedIn && post.userId !== userId" style="margin-top: 16px">
           <el-button type="warning" @click="showClueDialog = true">我有点线索</el-button>
         </div>
         <div v-if="post.userId === userId && post.status === 'ACTIVE'" style="margin-top: 8px">
@@ -20,6 +20,22 @@
         <el-descriptions-item label="丢失地点" :span="2">{{ post.address }}</el-descriptions-item>
         <el-descriptions-item label="酬金">{{ post.reward || '未说明' }}</el-descriptions-item>
       </el-descriptions>
+
+      <div v-if="post.photos" style="margin-top: 20px">
+        <h4>宠物照片</h4>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px">
+          <el-image
+            v-for="(url, idx) in post.photos.split(',')"
+            :key="idx"
+            :src="url"
+            :preview-src-list="post.photos.split(',')"
+            :initial-index="idx"
+            style="width: 160px; height: 160px; border-radius: 6px;"
+            fit="cover"
+            preview-teleported
+          />
+        </div>
+      </div>
 
       <div style="margin-top: 20px">
         <h4>特征描述</h4>
@@ -82,15 +98,18 @@ function tagType(status) {
 }
 
 async function submitClue() {
-  await messageApi.send({
+  const data = {
     postId: post.value.id,
     receiverId: post.value.userId,
     content: clueForm.value.content,
     clueTime: clueForm.value.clueTime,
-    clueLongitude: clueMapLocation.value.lng,
-    clueLatitude: clueMapLocation.value.lat,
-    clueAddress: clueMapLocation.value.address,
-  })
+  }
+  if (clueMapLocation.value.lng && clueMapLocation.value.lat) {
+    data.clueLongitude = clueMapLocation.value.lng
+    data.clueLatitude = clueMapLocation.value.lat
+    data.clueAddress = clueMapLocation.value.address
+  }
+  await messageApi.send(data)
   ElMessage.success('线索已提交，将通过私信发送给失主')
   showClueDialog.value = false
 }

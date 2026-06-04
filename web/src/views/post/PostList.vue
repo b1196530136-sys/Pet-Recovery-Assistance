@@ -26,6 +26,16 @@
       <el-col v-for="post in posts" :key="post.id" :span="8" style="margin-bottom: 16px">
         <el-card class="post-card" @click="$router.push(`/posts/${post.id}`)" style="cursor: pointer">
           <div class="post-status" :class="post.status">{{ statusMap[post.status] }}</div>
+          <div v-if="post.photos" class="post-photo">
+            <el-image
+              :src="post.photos.split(',')[0]"
+              style="width: 100%; height: 160px; border-radius: 4px;"
+              fit="cover"
+              :preview-src-list="post.photos.split(',')"
+              preview-teleported
+            />
+          </div>
+          <div v-else class="post-photo-placeholder">暂无照片</div>
           <h3>{{ post.petName || ' unnamed' }} ({{ typeMap[post.petType] }})</h3>
           <p style="font-size: 13px; color: #909399; margin-top: 8px">
             {{ post.address }} · {{ formatDate(post.lostTime) }}
@@ -78,7 +88,9 @@ onMounted(search)
 
 <style scoped>
 .post-card { position: relative; }
-.post-status { position: absolute; top: 12px; right: 12px; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.post-photo { margin-bottom: 10px; }
+.post-photo-placeholder { height: 160px; border-radius: 4px; background: #f5f7fa; display: flex; align-items: center; justify-content: center; color: #c0c4cc; font-size: 13px; margin-bottom: 10px; }
+.post-status { position: absolute; top: 12px; right: 12px; padding: 2px 8px; border-radius: 4px; font-size: 12px; z-index: 1; }
 .post-status.ACTIVE { background: #e6f7ff; color: #1890ff; }
 .post-status.RESOLVED { background: #f6ffed; color: #52c41a; }
 .post-status.REJECTED { background: #fff2f0; color: #ff4d4f; }

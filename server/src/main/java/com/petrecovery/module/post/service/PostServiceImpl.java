@@ -23,13 +23,13 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> impl
     @Override
     public IPage<PetSearchPost> searchPosts(PostSearchRequest request) {
         LambdaQueryWrapper<PetSearchPost> wrapper = new LambdaQueryWrapper<>();
-        if (request.getPetType() != null) {
+        if (request.getPetType() != null && !request.getPetType().isEmpty()) {
             wrapper.eq(PetSearchPost::getPetType, request.getPetType());
         }
-        if (request.getProvince() != null) {
+        if (request.getProvince() != null && !request.getProvince().isEmpty()) {
             wrapper.like(PetSearchPost::getAddress, request.getProvince());
         }
-        if (request.getStatus() != null) {
+        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
             wrapper.eq(PetSearchPost::getStatus, request.getStatus());
         }
         wrapper.orderByDesc(PetSearchPost::getCreateTime);

@@ -19,7 +19,7 @@
         </div>
       </div>
     </div>
-    <div ref="mapContainer" style="width: 900px; max-width: 100%; height: 400px; margin: 0 auto;"></div>
+    <div ref="mapContainer" style="width: 100%; height: 300px;"></div>
     <div v-if="address" style="margin-top: 8px; font-size: 13px; color: #606266;">
       已选位置: {{ address }} ({{ longitude }}, {{ latitude }})
     </div>
