@@ -21,6 +21,10 @@
         <el-form-item>
           <el-button type="primary" @click="search">搜索</el-button>
         </el-form-item>
+        <div style="flex: 1" />
+        <el-form-item>
+          <el-button type="success" size="large" style="padding: 10px 30px; font-size: 16px" @click="handleRegister">登记</el-button>
+        </el-form-item>
       </el-form>
     </el-card>
 
@@ -41,12 +45,26 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
 import { archiveApi } from '@/api/archive'
+import { useUserStore } from '@/store/user'
+
+const router = useRouter()
+const userStore = useUserStore()
 
 const list = ref([])
 const filters = ref({ animalType: '', placementStatus: '' })
 const typeMap = { cat: '猫', dog: '狗', other: '其他' }
 const placementMap = { observing: '原地观察', sheltered: '基地收容', adoptable: '开放领养' }
+
+function handleRegister() {
+  if (!userStore.isLoggedIn || (userStore.userInfo?.role !== 'CERTIFIED' && userStore.userInfo?.role !== 'ADMIN')) {
+    ElMessageBox.alert('权限不足！', '提示', { type: 'warning', confirmButtonText: '确定' })
+    return
+  }
+  router.push('/archives/create')
+}
 
 async function search() {
   const res = await archiveApi.search({ ...filters.value, page: 1, size: 20 })

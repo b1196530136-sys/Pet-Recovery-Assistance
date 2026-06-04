@@ -6,7 +6,6 @@
         <nav class="nav-links">
           <router-link to="/posts">寻宠大厅</router-link>
           <router-link to="/archives">流浪动物档案</router-link>
-          <router-link v-if="userStore.isLoggedIn" to="/posts/create">发布寻宠</router-link>
           <router-link v-if="userStore.isCertified" to="/archives/create">登记档案</router-link>
         </nav>
         <div class="header-right">

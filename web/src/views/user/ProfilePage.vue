@@ -124,6 +124,7 @@ async function loadData() {
     const [myRes, cluedRes] = await Promise.all([
       postApi.my(),
       postApi.clued(),
+      userStore.fetchProfile(),
     ])
     myPosts.value = myRes.data || []
     cluedPosts.value = cluedRes.data || []

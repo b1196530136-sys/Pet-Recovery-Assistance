@@ -43,6 +43,8 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> impl
         }
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
             wrapper.eq(PetSearchPost::getStatus, request.getStatus());
+        } else {
+            wrapper.in(PetSearchPost::getStatus, "ACTIVE", "RESOLVED");
         }
         wrapper.orderByDesc(PetSearchPost::getCreateTime);
         return page(new Page<>(request.getPage(), request.getSize()), wrapper);

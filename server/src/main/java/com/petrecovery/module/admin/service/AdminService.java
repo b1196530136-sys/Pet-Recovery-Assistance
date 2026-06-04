@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,24 @@ public class AdminService {
         if (user != null && "APPROVED".equals(action)
                 && UserRole.ROLE_PENDING_CERT.equals(user.getRole())) {
             user.setRole(UserRole.ROLE_CERTIFIED);
+            userMapper.updateById(user);
+        }
+    }
+
+    // ===== 用户权限管理 =====
+    public List<SysUser> getAllUsers() {
+        return userMapper.selectList(new LambdaQueryWrapper<SysUser>()
+                .ne(SysUser::getRole, UserRole.ROLE_ADMIN)
+                .orderByAsc(SysUser::getId));
+    }
+
+    public void updateUserRole(Long userId, String newRole) {
+        if (!Arrays.asList(UserRole.ROLE_USER, UserRole.ROLE_CERTIFIED, UserRole.ROLE_PENDING_CERT).contains(newRole)) {
+            throw new IllegalArgumentException("无效的角色: " + newRole);
+        }
+        SysUser user = userMapper.selectById(userId);
+        if (user != null && !UserRole.ROLE_ADMIN.equals(user.getRole())) {
+            user.setRole(newRole);
             userMapper.updateById(user);
         }
     }

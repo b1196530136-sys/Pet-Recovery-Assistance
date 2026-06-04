@@ -34,6 +34,7 @@ const routes = [
       { path: 'posts', name: 'AdminPostReview', component: () => import('@/views/admin/PostReview.vue') },
       { path: 'archives', name: 'AdminArchiveReview', component: () => import('@/views/admin/ArchiveReview.vue') },
       { path: 'certifications', name: 'AdminCertReview', component: () => import('@/views/admin/CertReview.vue') },
+      { path: 'users', name: 'AdminUserManage', component: () => import('@/views/admin/UserManage.vue') },
     ],
   },
   {

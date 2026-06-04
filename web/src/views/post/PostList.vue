@@ -18,6 +18,12 @@
         <el-form-item>
           <el-button type="primary" @click="search">搜索</el-button>
         </el-form-item>
+        <div style="flex: 1" />
+        <el-form-item>
+          <router-link to="/posts/create">
+            <el-button type="primary" size="large" style="padding: 10px 30px; font-size: 16px">我要寻宠</el-button>
+          </router-link>
+        </el-form-item>
       </el-form>
     </el-card>
 
@@ -78,7 +84,7 @@ function formatDate(d) {
 }
 
 async function search() {
-  const res = await postApi.search({ ...filters.value, page: page.value, size: 20, status: 'ACTIVE' })
+  const res = await postApi.search({ ...filters.value, page: page.value, size: 20 })
   posts.value = res.data.records
   total.value = res.data.total
 }

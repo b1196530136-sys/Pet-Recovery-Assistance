@@ -8,6 +8,7 @@
           <el-menu-item index="/admin/posts">寻宠启事审核</el-menu-item>
           <el-menu-item index="/admin/archives">流浪动物档案审核</el-menu-item>
           <el-menu-item index="/admin/certifications">认证审批</el-menu-item>
+          <el-menu-item index="/admin/users">用户权限管理</el-menu-item>
         </el-menu>
       </el-aside>
       <el-container>

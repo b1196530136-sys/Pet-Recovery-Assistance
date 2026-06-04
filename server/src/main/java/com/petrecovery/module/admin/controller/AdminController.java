@@ -58,6 +58,21 @@ public class AdminController {
         return Result.success();
     }
 
+    // ===== 用户权限管理 =====
+    @GetMapping("/users")
+    public Result<?> users(HttpServletRequest request) {
+        checkAdmin(request);
+        return Result.success(adminService.getAllUsers());
+    }
+
+    @PostMapping("/user/role/{userId}")
+    public Result<?> updateUserRole(@PathVariable Long userId, @RequestParam String role,
+                                     HttpServletRequest request) {
+        checkAdmin(request);
+        adminService.updateUserRole(userId, role);
+        return Result.success();
+    }
+
     // ===== 数据大盘 =====
     @GetMapping("/dashboard")
     public Result<?> dashboard(HttpServletRequest request) {

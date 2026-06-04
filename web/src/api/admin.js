@@ -16,6 +16,13 @@ export const adminApi = {
   reviewCertification(userId, action) {
     return request.post(`/admin/certification/review/${userId}`, null, { params: { action } })
   },
+  // 用户权限管理
+  users() {
+    return request.get('/admin/users')
+  },
+  updateUserRole(userId, role) {
+    return request.post(`/admin/user/role/${userId}`, null, { params: { role } })
+  },
   // 数据大盘
   dashboard() {
     return request.get('/admin/dashboard')
