@@ -13,6 +13,8 @@
                  class="conv-item"
                  :class="{ active: currentOtherId === conv.otherId }"
                  @click="selectConvByUser(conv.otherId)">
+              <el-avatar :size="36" :src="getUserAvatar(conv.otherId)" style="flex-shrink: 0; margin-right: 10px;">
+              </el-avatar>
               <div style="flex:1; min-width:0">
                 <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                   {{ getUserName(conv.otherId) }}
@@ -33,10 +35,17 @@
           <template #header>
             <span>消息详情</span>
           </template>
+          <!-- 领养申请操作栏 -->
+          <div v-if="pendingAdoption" class="adopt-banner">
+            <span>{{ pendingAdoption.applicantName }} 想领养您的「{{ typeMap[pendingAdoption.animalType] || pendingAdoption.animalType }}」</span>
+            <el-button size="small" type="success" @click="handleAdoptReview('APPROVED')">接受</el-button>
+            <el-button size="small" type="danger" @click="handleAdoptReview('REJECTED')">拒绝</el-button>
+          </div>
           <div v-if="messages.length" class="msg-list">
             <div v-for="msg in messages" :key="msg.id"
                  class="msg-item"
                  :class="{ mine: msg.senderId === userId }">
+              <el-avatar v-if="msg.senderId !== userId" :size="36" :src="getUserAvatar(msg.senderId)" class="msg-avatar" />
               <div class="msg-bubble"
                    :class="{ 'clue-bubble': msg.msgType === 1 }"
                    @click="msg.msgType === 1 && showClueDetail(msg)">
@@ -63,6 +72,7 @@
                 </p>
                 <small style="color: #c0c4cc; font-size: 11px">{{ msg.createTime }}</small>
               </div>
+              <el-avatar v-if="msg.senderId === userId" :size="36" :src="getUserAvatar(msg.senderId)" class="msg-avatar" />
             </div>
           </div>
           <el-empty v-else description="选择会话查看消息" />
@@ -132,8 +142,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { messageApi } from '@/api/message'
 import { userApi } from '@/api/user'
+import { adoptionApi } from '@/api/adoption'
 import { useUserStore } from '@/store/user'
 import { onMessage } from '@/utils/websocket'
 
@@ -148,6 +160,10 @@ const userCache = ref({})
 const clueDialogVisible = ref(false)
 const clueDetail = ref(null)
 const clueMapContainer = ref(null)
+
+// 领养申请
+const pendingAdoption = ref(null)
+const typeMap = { cat: '猫', dog: '狗', other: '其他' }
 
 // 普通消息输入
 const inputText = ref('')
@@ -166,6 +182,13 @@ async function getUserInfo(id) {
 
 function getUserName(id) {
   return userCache.value[id]?.nickname || '用户' + id
+}
+
+const DEFAULT_AVATAR = '/images/default-avatar.png'
+
+function getUserAvatar(id) {
+  if (id === userId.value) return userStore.userInfo?.avatar || DEFAULT_AVATAR
+  return userCache.value[id]?.avatar || DEFAULT_AVATAR
 }
 
 function parsePhotos(photos) {
@@ -227,8 +250,10 @@ async function selectConvByUser(otherId) {
     }
   }
   loadConversations()
-  userStore.fetchUnread() // 刷新导航栏红点
+  userStore.fetchUnread()
   scrollToBottom()
+  // 检查是否有该用户的待处理领养申请
+  checkPendingAdoption(otherId)
 }
 
 async function sendNormalMessage() {
@@ -253,6 +278,31 @@ async function sendNormalMessage() {
   } catch {
     // ignore
   }
+}
+
+async function checkPendingAdoption(otherId) {
+  pendingAdoption.value = null
+  if (!otherId) return
+  try {
+    const res = await adoptionApi.incomingFrom(otherId)
+    pendingAdoption.value = res.data || null
+  } catch { /* ignore */ }
+}
+
+async function handleAdoptReview(action) {
+  if (!pendingAdoption.value) return
+  const label = action === 'APPROVED' ? '接受' : '拒绝'
+  try {
+    await ElMessageBox.confirm(`确定${label}该领养申请吗？`, '提示', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
+  } catch { return }
+  try {
+    await adoptionApi.review(pendingAdoption.value.id, action)
+    ElMessage.success(`已${label}`)
+  } catch { /* ignore */ }
+  // 无论成功失败都重新检查，避免状态不同步
+  pendingAdoption.value = null
+  loadConversations()
+  checkPendingAdoption(currentOtherId.value)
 }
 
 function scrollToBottom() {
@@ -319,13 +369,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.conv-item { padding: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; }
+.conv-item { padding: 12px; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0; }
+.conv-item .el-avatar { flex-shrink: 0; }
 .conv-item:hover, .conv-item.active { background: #ecf5ff; }
 .msg-list { max-height: 500px; overflow-y: auto; }
-.msg-item { display: flex; margin-bottom: 16px; }
+.msg-item { display: flex; align-items: flex-start; margin-bottom: 16px; gap: 8px; }
 .msg-item.mine { justify-content: flex-end; }
+.msg-avatar { flex-shrink: 0; margin-top: 4px; }
 .msg-bubble { max-width: 70%; padding: 10px 14px; border-radius: 8px; background: #f0f0f0; }
-.msg-item.mine .msg-bubble { background: #ecf5ff; }
+.msg-item.mine .msg-bubble { background: #409eff; color: #fff; }
+.msg-item.mine .msg-bubble small { color: rgba(255,255,255,0.7); }
+.msg-item.mine .clue-bubble { background: #e6a23c; }
 .clue-photos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; padding: 4px; background: #fafafa; border-radius: 6px; }
 .clue-bubble { cursor: pointer; transition: box-shadow 0.2s, transform 0.1s; }
 .clue-bubble:hover { box-shadow: 0 2px 12px rgba(230, 162, 60, 0.25); transform: translateY(-1px); }
@@ -334,4 +388,6 @@ onUnmounted(() => {
 .image-error-detail { width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #c0c4cc; font-size: 13px; }
 .msg-input-bar { display: flex; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #ebeef5; align-items: center; }
 .msg-input-bar .el-input { flex: 1; }
+.adopt-banner { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 12px; background: #fff7e6; border: 1px solid #ffd591; border-radius: 8px; font-size: 14px; color: #303133; }
+.adopt-banner span { flex: 1; }
 </style>

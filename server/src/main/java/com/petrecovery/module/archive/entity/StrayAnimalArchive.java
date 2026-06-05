@@ -18,6 +18,7 @@ public class StrayAnimalArchive {
     private String address;
     private String healthStatus;
     private String neuteredStatus;
+    private String immuneStatus;
     private String placementStatus;
     private String photos;
     private String description;
@@ -30,4 +31,5 @@ public class StrayAnimalArchive {
     private LocalDateTime updateTime;
 
     private String rejectReason;
+    private String pendingData;
 }

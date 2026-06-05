@@ -4,30 +4,56 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.petrecovery.common.util.ImageHashUtil;
 import com.petrecovery.module.message.entity.SysImMessage;
 import com.petrecovery.module.message.mapper.MessageMapper;
 import com.petrecovery.module.post.dto.PostSearchRequest;
 import com.petrecovery.module.post.entity.PetSearchPost;
 import com.petrecovery.module.post.mapper.PostMapper;
+import com.petrecovery.storage.UploadStorageService;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
+import java.io.File;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> implements PostService {
 
-    private final MessageMapper messageMapper;
+    private static final double SIMILARITY_THRESHOLD = 60.0;
 
-    public PostServiceImpl(MessageMapper messageMapper) {
+    private final MessageMapper messageMapper;
+    private final UploadStorageService uploadStorageService;
+
+    public PostServiceImpl(MessageMapper messageMapper, UploadStorageService uploadStorageService) {
         this.messageMapper = messageMapper;
+        this.uploadStorageService = uploadStorageService;
     }
 
     @Override
     public PetSearchPost createPost(PetSearchPost post, Long userId) {
         post.setUserId(userId);
         post.setStatus("PENDING");
+        // 如果包含照片，计算感知哈希
+        if (post.getPhotos() != null && !post.getPhotos().isEmpty()) {
+            String[] photoUrls = post.getPhotos().split(",");
+            String[] hashes = new String[photoUrls.length];
+            String storagePath = uploadStorageService.getStoragePath();
+            for (int i = 0; i < photoUrls.length; i++) {
+                String url = photoUrls[i].trim();
+                String filename = url.replace("/upload/", "");
+                File imgFile = Paths.get(storagePath, filename).toFile();
+                if (imgFile.exists()) {
+                    try {
+                        hashes[i] = ImageHashUtil.computeHash(imgFile);
+                    } catch (Exception e) {
+                        hashes[i] = "";
+                    }
+                }
+            }
+            post.setPhotoHash(String.join(",", hashes));
+        }
         save(post);
         return post;
     }
@@ -97,5 +123,77 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> impl
             return removeById(postId);
         }
         return false;
+    }
+
+    @Override
+    public List<Map<String, Object>> searchByImage(byte[] imageBytes) {
+        // 计算上传图片的哈希
+        String uploadedHash = ImageHashUtil.computeHash(imageBytes);
+
+        // 获取所有已审核通过的帖子
+        List<PetSearchPost> allPosts = list(new LambdaQueryWrapper<PetSearchPost>()
+                .in(PetSearchPost::getStatus, "ACTIVE", "RESOLVED")
+                .isNotNull(PetSearchPost::getPhotoHash)
+                .ne(PetSearchPost::getPhotoHash, ""));
+
+        // 逐一比对哈希值，找出相似度 >= 60% 的
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (PetSearchPost post : allPosts) {
+            String[] postHashes = post.getPhotoHash().split(",");
+            double bestSim = 0;
+            for (String hash : postHashes) {
+                if (hash == null || hash.isEmpty()) continue;
+                double sim = ImageHashUtil.similarity(uploadedHash, hash);
+                if (sim > bestSim) bestSim = sim;
+            }
+            if (bestSim >= SIMILARITY_THRESHOLD) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", post.getId());
+                item.put("petName", post.getPetName());
+                item.put("petType", post.getPetType());
+                item.put("photos", post.getPhotos());
+                item.put("address", post.getAddress());
+                item.put("lostTime", post.getLostTime());
+                item.put("description", post.getDescription());
+                item.put("status", post.getStatus());
+                item.put("similarity", Math.round(bestSim * 10.0) / 10.0);
+                results.add(item);
+            }
+        }
+
+        // 按相似度降序排列
+        results.sort((a, b) -> Double.compare((double) b.get("similarity"), (double) a.get("similarity")));
+        return results;
+    }
+
+    @Override
+    public void computeHashForExisting() {
+        String storagePath = uploadStorageService.getStoragePath();
+        List<PetSearchPost> allPosts = list(new LambdaQueryWrapper<PetSearchPost>()
+                .isNotNull(PetSearchPost::getPhotos)
+                .ne(PetSearchPost::getPhotos, ""));
+        int updated = 0;
+        for (PetSearchPost post : allPosts) {
+            if (post.getPhotoHash() != null && !post.getPhotoHash().isEmpty()) continue;
+            String[] photoUrls = post.getPhotos().split(",");
+            List<String> hashes = new ArrayList<>();
+            for (String url : photoUrls) {
+                String filename = url.trim().replace("/upload/", "");
+                File imgFile = Paths.get(storagePath, filename).toFile();
+                if (imgFile.exists()) {
+                    try {
+                        hashes.add(ImageHashUtil.computeHash(imgFile));
+                    } catch (Exception e) {
+                        hashes.add("");
+                    }
+                }
+            }
+            String hashStr = String.join(",", hashes);
+            if (!hashStr.isEmpty()) {
+                post.setPhotoHash(hashStr);
+                updateById(post);
+                updated++;
+            }
+        }
     }
 }

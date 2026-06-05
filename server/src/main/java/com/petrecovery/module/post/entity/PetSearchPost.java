@@ -23,6 +23,7 @@ public class PetSearchPost {
     private String reward;
     private String description;
     private String status;
+    private String photoHash;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

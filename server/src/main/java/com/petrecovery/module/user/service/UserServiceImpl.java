@@ -16,6 +16,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
     @Override
     public SysUser login(String email, String password) {
         SysUser user = getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getEmail, email));
+        if (user != null && user.getStatus() != null && user.getStatus() == 0) {
+            throw new RuntimeException("账号已被封禁");
+        }
         if (user != null && ENCODER.matches(password, user.getPassword())) {
             return user;
         }
@@ -54,5 +57,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
             return updateById(user);
         }
         return false;
+    }
+
+    @Override
+    public void updateAvatar(Long userId, String avatar) {
+        SysUser user = getById(userId);
+        if (user != null) {
+            user.setAvatar(avatar);
+            updateById(user);
+        }
     }
 }

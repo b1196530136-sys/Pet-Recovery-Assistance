@@ -4,6 +4,12 @@ export const archiveApi = {
   create(data) {
     return request.post('/archive/create', data)
   },
+  update(data) {
+    return request.put('/archive/update', data)
+  },
+  delete(id) {
+    return request.delete(`/archive/delete/${id}`)
+  },
   search(params) {
     return request.get('/archive/search', { params })
   },

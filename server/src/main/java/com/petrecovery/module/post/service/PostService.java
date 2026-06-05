@@ -6,6 +6,7 @@ import com.petrecovery.module.post.dto.PostSearchRequest;
 import com.petrecovery.module.post.entity.PetSearchPost;
 
 import java.util.List;
+import java.util.Map;
 
 public interface PostService extends IService<PetSearchPost> {
     PetSearchPost createPost(PetSearchPost post, Long userId);
@@ -15,4 +16,6 @@ public interface PostService extends IService<PetSearchPost> {
     List<PetSearchPost> getMyPosts(Long userId);
     List<PetSearchPost> getCluedPosts(Long userId);
     boolean deletePost(Long postId, Long userId);
+    List<Map<String, Object>> searchByImage(byte[] imageBytes);
+    void computeHashForExisting();
 }

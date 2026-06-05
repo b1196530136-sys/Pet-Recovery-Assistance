@@ -19,4 +19,7 @@ export const userApi = {
   getUserInfo(id) {
     return request.get(`/user/info/${id}`)
   },
+  updateAvatar(avatar) {
+    return request.post('/user/update-avatar', { avatar })
+  },
 }

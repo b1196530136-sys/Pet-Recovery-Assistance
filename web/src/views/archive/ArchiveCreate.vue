@@ -1,6 +1,7 @@
 <template>
   <div class="archive-create-page" style="max-width: 800px; margin: 0 auto">
-    <h2 style="margin-bottom: 20px">登记流浪动物档案</h2>
+    <el-button :icon="ArrowLeft" @click="$router.back()" style="margin-bottom: 8px">返回</el-button>
+    <h2 style="margin-bottom: 20px">{{ isEdit ? '编辑流浪动物档案' : '登记流浪动物档案' }}</h2>
     <el-alert title="仅认证用户可以登记动物档案" type="warning" :closable="false" show-icon style="margin-bottom: 20px" />
     <el-card>
       <el-form :model="form" label-width="120px">
@@ -11,7 +12,7 @@
             <el-radio value="other">其他</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="发现位置" required style="flex-direction: column; align-items: stretch;">
+        <el-form-item v-if="!isEdit" label="发现位置" required style="flex-direction: column; align-items: stretch;">
           <div style="width: 100%;">
             <AmapPicker v-model="mapLocation" />
           </div>
@@ -63,7 +64,7 @@
           <el-input v-model="form.description" type="textarea" :rows="3" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" size="large" @click="submit">提交审核</el-button>
+          <el-button type="primary" size="large" @click="submit">{{ isEdit ? '更新档案' : '提交审核' }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -71,16 +72,19 @@
 </template>
 
 <script setup>
-import { reactive, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive, computed, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { archiveApi } from '@/api/archive'
 import { useUserStore } from '@/store/user'
 import AmapPicker from '@/components/map/AmapPicker.vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
-const form = reactive({ animalType: 'cat', healthStatus: '', neuteredStatus: '', immuneStatus: '', placementStatus: 'observing', description: '', photos: '', longitude: '', latitude: '', address: '' })
+const isEdit = computed(() => !!route.query.id)
+const form = reactive({ id: null, animalType: 'cat', healthStatus: '', neuteredStatus: '', immuneStatus: '', placementStatus: 'observing', description: '', photos: '', longitude: '', latitude: '', address: '' })
 const photoUrls = reactive([])
 const mapLocation = reactive({ lng: '', lat: '', address: '' })
 
@@ -120,8 +124,40 @@ watch(mapLocation, (val) => {
 }, { deep: true })
 
 async function submit() {
-  await archiveApi.create(form)
-  ElMessage.success('提交成功，请等待后台审核')
+  form.longitude = mapLocation.lng
+  form.latitude = mapLocation.lat
+  form.address = mapLocation.address
+  if (isEdit.value) {
+    await archiveApi.update(form)
+    ElMessage.success('更新成功，请等待后台审核')
+  } else {
+    await archiveApi.create(form)
+    ElMessage.success('提交成功，请等待后台审核')
+  }
   router.push('/archives')
 }
+
+onMounted(async () => {
+  if (isEdit.value) {
+    const res = await archiveApi.detail(route.query.id)
+    const data = res.data
+    Object.assign(form, {
+      id: data.id,
+      animalType: data.animalType,
+      healthStatus: data.healthStatus || '',
+      neuteredStatus: data.neuteredStatus || '',
+      immuneStatus: data.immuneStatus || '',
+      placementStatus: data.placementStatus,
+      description: data.description || '',
+      photos: data.photos || '',
+      longitude: data.longitude || '',
+      latitude: data.latitude || '',
+      address: data.address || '',
+    })
+    if (data.photos) {
+      photoUrls.splice(0, photoUrls.length, ...data.photos.split(',').filter(Boolean))
+    }
+    Object.assign(mapLocation, { lng: data.longitude || '', lat: data.latitude || '', address: data.address || '' })
+  }
+})
 </script>

@@ -117,6 +117,9 @@ watch(mapLocation, (val) => {
 }, { deep: true })
 
 async function submit() {
+  form.longitude = mapLocation.lng
+  form.latitude = mapLocation.lat
+  form.address = mapLocation.address
   await postApi.create(form)
   ElMessage.success('提交成功，请等待后台审核')
   router.push('/posts')

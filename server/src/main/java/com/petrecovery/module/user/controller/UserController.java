@@ -75,6 +75,13 @@ public class UserController {
         return Result.success();
     }
 
+    @PostMapping("/update-avatar")
+    public Result<?> updateAvatar(HttpServletRequest request, @RequestBody Map<String, String> body) {
+        Long userId = (Long) request.getAttribute("userId");
+        userService.updateAvatar(userId, body.get("avatar"));
+        return Result.success();
+    }
+
     private Map<String, Object> toSafeMap(SysUser user) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", user.getId());

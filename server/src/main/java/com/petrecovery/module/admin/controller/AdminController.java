@@ -73,6 +73,20 @@ public class AdminController {
         return Result.success();
     }
 
+    @PostMapping("/user/ban/{userId}")
+    public Result<?> banUser(@PathVariable Long userId, HttpServletRequest request) {
+        checkAdmin(request);
+        adminService.banUser(userId);
+        return Result.success();
+    }
+
+    @PostMapping("/user/unban/{userId}")
+    public Result<?> unbanUser(@PathVariable Long userId, HttpServletRequest request) {
+        checkAdmin(request);
+        adminService.unbanUser(userId);
+        return Result.success();
+    }
+
     // ===== 数据大盘 =====
     @GetMapping("/dashboard")
     public Result<?> dashboard(HttpServletRequest request) {

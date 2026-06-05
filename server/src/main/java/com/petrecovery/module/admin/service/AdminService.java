@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.petrecovery.common.constant.UserRole;
 import com.petrecovery.module.archive.entity.StrayAnimalArchive;
 import com.petrecovery.module.archive.mapper.ArchiveMapper;
+import com.petrecovery.module.archive.service.ArchiveService;
 import com.petrecovery.module.post.entity.PetSearchPost;
 import com.petrecovery.module.post.mapper.PostMapper;
 import com.petrecovery.module.user.entity.SysUser;
@@ -27,11 +28,13 @@ public class AdminService {
     private final PostMapper postMapper;
     private final ArchiveMapper archiveMapper;
     private final UserMapper userMapper;
+    private final ArchiveService archiveService;
 
-    public AdminService(PostMapper postMapper, ArchiveMapper archiveMapper, UserMapper userMapper) {
+    public AdminService(PostMapper postMapper, ArchiveMapper archiveMapper, UserMapper userManager, ArchiveService archiveService) {
         this.postMapper = postMapper;
         this.archiveMapper = archiveMapper;
-        this.userMapper = userMapper;
+        this.userMapper = userManager;
+        this.archiveService = archiveService;
     }
 
     public void reviewPost(Long postId, String action, String reason) {
@@ -46,13 +49,10 @@ public class AdminService {
     }
 
     public void reviewArchive(Long archiveId, String action, String reason) {
-        StrayAnimalArchive archive = archiveMapper.selectById(archiveId);
-        if (archive != null) {
-            archive.setStatus("APPROVED".equals(action) ? "APPROVED" : "REJECTED");
-            if ("REJECTED".equals(action)) {
-                archive.setRejectReason(reason);
-            }
-            archiveMapper.updateById(archive);
+        if ("APPROVED".equals(action)) {
+            archiveService.approveArchive(archiveId);
+        } else if ("REJECTED".equals(action)) {
+            archiveService.rejectArchive(archiveId, reason);
         }
     }
 
@@ -86,6 +86,21 @@ public class AdminService {
             user.setRole(newRole);
             userMapper.updateById(user);
         }
+    }
+
+    public void banUser(Long userId) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) throw new RuntimeException("用户不存在");
+        if (UserRole.ROLE_ADMIN.equals(user.getRole())) throw new RuntimeException("不能封禁管理员");
+        user.setStatus(0);
+        userMapper.updateById(user);
+    }
+
+    public void unbanUser(Long userId) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) throw new RuntimeException("用户不存在");
+        user.setStatus(1);
+        userMapper.updateById(user);
     }
 
     public Map<String, Object> getDashboardData() {

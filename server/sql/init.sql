@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS pet_search_post (
     description   TEXT          DEFAULT NULL COMMENT '特征描述',
     status        VARCHAR(20)   NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/ACTIVE/REJECTED/RESOLVED',
     reject_reason VARCHAR(512)  DEFAULT NULL COMMENT '驳回原因',
+    photo_hash    VARCHAR(256)  DEFAULT NULL COMMENT '感知哈希值(逗号分隔,与photos对应)',
     create_time   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发布时间',
     update_time   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_user (user_id),
@@ -61,7 +62,8 @@ CREATE TABLE IF NOT EXISTS stray_animal_archive (
     latitude         DECIMAL(10,7) DEFAULT NULL COMMENT '发现纬度(BD-09)',
     address          VARCHAR(512)  DEFAULT NULL COMMENT '文字地址',
     health_status    VARCHAR(64)   DEFAULT NULL COMMENT '健康状况评估',
-    neutered_status  VARCHAR(64)   DEFAULT NULL COMMENT '绝育/免疫情况',
+    neutered_status  VARCHAR(64)   DEFAULT NULL COMMENT '绝育状态(已绝育/未绝育)',
+    immune_status    VARCHAR(64)   DEFAULT NULL COMMENT '免疫状态(已免疫/未免疫)',
     placement_status VARCHAR(64)   DEFAULT NULL COMMENT '安置状态: observing/sheltered/adoptable',
     photos           TEXT          DEFAULT NULL COMMENT '现场照片(JSON数组)',
     description      TEXT          DEFAULT NULL COMMENT '备注描述',
@@ -111,9 +113,28 @@ CREATE TABLE IF NOT EXISTS sys_verify_code (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='邮箱验证码表';
 
 -- ============================================================
+-- 6. 领养申请表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS adoption_request (
+    id            BIGINT        AUTO_INCREMENT PRIMARY KEY COMMENT '申请ID',
+    archive_id    BIGINT        NOT NULL COMMENT '关联档案ID',
+    applicant_id  BIGINT        NOT NULL COMMENT '申请人ID',
+    owner_id      BIGINT        NOT NULL COMMENT '档案发布人ID',
+    message       TEXT          DEFAULT NULL COMMENT '申请留言',
+    status        VARCHAR(20)   NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/APPROVED/REJECTED',
+    create_time   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
+    update_time   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_archive (archive_id),
+    INDEX idx_applicant (applicant_id),
+    INDEX idx_owner (owner_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='领养申请表';
+
+-- ============================================================
 -- 初始化管理员账号(密码: admin123)
 -- ============================================================
-sys_userINSERT INTO sys_user (email, password, nickname, role, status)
+INSERT INTO sys_user (email, password, nickname, role, status)
 VALUES ('admin@petrecovery.com',
         '$2b$10$JLvIuzkoeunleBDoQ.kdK.EQtpY9ffZrWDARMJzkEKfWxIFwjtjzi',
         '系统管理员', 'ADMIN', 1);
+

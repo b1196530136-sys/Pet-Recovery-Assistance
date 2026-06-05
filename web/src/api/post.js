@@ -22,4 +22,11 @@ export const postApi = {
   delete(id) {
     return request.post(`/post/delete/${id}`)
   },
+  searchByImage(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return request.post('/post/search-by-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

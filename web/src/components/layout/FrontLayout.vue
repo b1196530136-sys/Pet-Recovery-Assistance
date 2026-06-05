@@ -13,9 +13,7 @@
               <router-link to="/messages">消息</router-link>
             </el-badge>
             <div class="user-block" @click="$router.push('/profile')" style="cursor: pointer">
-              <el-avatar :size="32" :src="userStore.userInfo?.avatar" class="user-avatar">
-                {{ displayName.charAt(0) }}
-              </el-avatar>
+              <el-avatar :size="32" :src="userStore.userInfo?.avatar || '/images/default-avatar.png'" class="user-avatar" />
               <el-tooltip :content="roleLabel" placement="bottom">
                 <span class="user-name">{{ displayName }}</span>
               </el-tooltip>

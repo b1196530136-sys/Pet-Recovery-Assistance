@@ -2,6 +2,7 @@
   <div class="post-detail-page" style="max-width: 900px; margin: 0 auto">
     <el-card v-if="post" class="detail-card">
       <div class="post-header">
+        <el-button @click="$router.back()" :icon="ArrowLeft" style="margin-bottom: 12px">返回</el-button>
         <div>
           <h2>{{ post.petName || ' unnamed ' }}({{ typeMap[post.petType] }})</h2>
           <el-tag :type="tagType(post.status)">{{ statusMap[post.status] }}</el-tag>
@@ -87,6 +88,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { postApi } from '@/api/post'
 import { messageApi } from '@/api/message'
 import { useUserStore } from '@/store/user'

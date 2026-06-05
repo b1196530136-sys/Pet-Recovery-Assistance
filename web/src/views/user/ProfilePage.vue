@@ -1,11 +1,11 @@
 <template>
   <div class="profile-page" v-loading="loading">
+    <el-button @click="$router.back()" :icon="ArrowLeft" style="margin-bottom: 16px">返回</el-button>
     <!-- 个人信息卡片 -->
     <el-card class="profile-card">
       <div class="profile-header">
-        <el-avatar :size="80" :src="userInfo?.avatar" class="profile-avatar">
-          {{ displayName.charAt(0) }}
-        </el-avatar>
+        <el-avatar :size="80" :src="userInfo?.avatar || '/images/default-avatar.png'" class="profile-avatar" style="cursor: pointer" @click="avatarInput.click()" />
+        <input ref="avatarInput" type="file" accept="image/*" style="display:none" @change="onAvatarChange" />
         <div class="profile-info">
           <div class="profile-name-row">
             <span class="profile-name">{{ displayName }}</span>
@@ -116,15 +116,65 @@
       </el-table>
       <el-empty v-else description="暂无提供过线索的寻宠启事" />
     </el-card>
+
+    <!-- 收到的领养申请 -->
+    <el-card class="section-card">
+      <template #header>
+        <span>收到的领养申请</span>
+      </template>
+      <el-table v-if="incomingRequests.length" :data="incomingRequests" stripe style="width: 100%">
+        <el-table-column prop="animalType" label="档案类型" width="100">
+          <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
+        </el-table-column>
+        <el-table-column prop="applicantName" label="申请人" width="100" />
+        <el-table-column prop="message" label="留言" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="adoptStatusTagType(row.status)">{{ adoptStatusMap[row.status] }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="申请时间" width="170" />
+        <el-table-column label="操作" width="160" v-if="hasPendingIncoming">
+          <template #default="{ row }">
+            <el-button v-if="row.status === 'PENDING'" size="small" type="success" @click="handleReview(row, 'APPROVED')">接受</el-button>
+            <el-button v-if="row.status === 'PENDING'" size="small" type="danger" @click="handleReview(row, 'REJECTED')">拒绝</el-button>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-else description="暂无收到的领养申请" />
+    </el-card>
+
+    <!-- 我的领养申请 -->
+    <el-card class="section-card">
+      <template #header>
+        <span>我的领养申请</span>
+      </template>
+      <el-table v-if="myRequests.length" :data="myRequests" stripe style="width: 100%">
+        <el-table-column prop="animalType" label="档案类型" width="100">
+          <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
+        </el-table-column>
+        <el-table-column prop="ownerName" label="发布人" width="100" />
+        <el-table-column prop="message" label="留言" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="adoptStatusTagType(row.status)">{{ adoptStatusMap[row.status] }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="申请时间" width="170" />
+      </el-table>
+      <el-empty v-else description="暂无领养申请" />
+    </el-card>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import { postApi } from '@/api/post'
 import { userApi } from '@/api/user'
+import { adoptionApi } from '@/api/adoption'
 import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
@@ -134,7 +184,17 @@ const myPosts = ref([])
 const cluedPosts = ref([])
 const showCertDialog = ref(false)
 const certUrls = ref([])
+const avatarInput = ref(null)
+const avatarLoading = ref(false)
 const certUploading = ref(false)
+const incomingRequests = ref([])
+const myRequests = ref([])
+
+const adoptStatusMap = { PENDING: '待处理', APPROVED: '已通过', REJECTED: '已拒绝' }
+function adoptStatusTagType(status) {
+  return { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger' }[status] || 'info'
+}
+const hasPendingIncoming = computed(() => incomingRequests.value.some(r => r.status === 'PENDING'))
 
 const userInfo = computed(() => userStore.userInfo)
 
@@ -155,15 +215,54 @@ function statusTagType(status) {
 async function loadData() {
   loading.value = true
   try {
-    const [myRes, cluedRes] = await Promise.all([
+    const [myRes, cluedRes, incomingRes, myAdoptRes] = await Promise.all([
       postApi.my(),
       postApi.clued(),
+      adoptionApi.incoming(),
+      adoptionApi.my(),
       userStore.fetchProfile(),
     ])
     myPosts.value = myRes.data || []
     cluedPosts.value = cluedRes.data || []
+    incomingRequests.value = incomingRes.data || []
+    myRequests.value = myAdoptRes.data || []
   } catch { /* ignore */ }
   loading.value = false
+}
+
+async function onAvatarChange(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('只能上传图片文件')
+    return
+  }
+  if (file.size / 1024 / 1024 >= 5) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return
+  }
+  avatarLoading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const uploadRes = await fetch('/api/upload/image', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${userStore.token}` },
+      body: formData,
+    })
+    const json = await uploadRes.json()
+    if (json.code === 200 && json.data) {
+      await userApi.updateAvatar(json.data)
+      await userStore.fetchProfile()
+      ElMessage.success('头像已更新')
+    } else {
+      ElMessage.error(json.message || '上传失败')
+    }
+  } catch {
+    ElMessage.error('头像上传失败')
+  }
+  avatarLoading.value = false
+  avatarInput.value.value = ''
 }
 
 function onCertUploadSuccess(response) {
@@ -220,6 +319,24 @@ async function handleDeleteCluedPost(row) {
     ElMessage.success('删除成功')
     cluedPosts.value = cluedPosts.value.filter(p => p.id !== row.id)
   } catch { /* ignore */ }
+}
+
+async function handleReview(row, action) {
+  const label = action === 'APPROVED' ? '接受' : '拒绝'
+  try {
+    await ElMessageBox.confirm(`确定${label}该领养申请吗？`, '提示', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
+  } catch { return }
+  try {
+    await adoptionApi.review(row.id, action)
+    ElMessage.success(`已${label}`)
+  } catch { /* ignore */ }
+  // 重新从服务器加载列表，确保状态同步
+  const [incomingRes, myAdoptRes] = await Promise.all([
+    adoptionApi.incoming(),
+    adoptionApi.my(),
+  ])
+  incomingRequests.value = incomingRes.data || []
+  myRequests.value = myAdoptRes.data || []
 }
 
 onMounted(loadData)

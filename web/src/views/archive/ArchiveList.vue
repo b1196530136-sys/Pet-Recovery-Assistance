@@ -31,9 +31,17 @@
     <el-row :gutter="16">
       <el-col v-for="item in list" :key="item.id" :span="8" style="margin-bottom: 16px">
         <el-card @click="$router.push(`/archives/${item.id}`)" style="cursor: pointer">
+          <el-image
+            v-if="getFirstPhoto(item.photos)"
+            :src="getPhotoUrl(getFirstPhoto(item.photos))"
+            fit="cover"
+            style="width: 100%; height: 180px; border-radius: 6px; margin-bottom: 12px"
+          />
+          <div v-else style="width: 100%; height: 180px; border-radius: 6px; margin-bottom: 12px; background: #f5f7fa; display: flex; align-items: center; justify-content: center; color: #c0c4cc; font-size: 13px">暂无图片</div>
           <h3>{{ typeMap[item.animalType] }}</h3>
+          <el-tag size="small" :type="placementTagType[item.placementStatus]" style="margin-top: 8px">{{ placementMap[item.placementStatus] || '未知' }}</el-tag>
           <p style="font-size: 13px; color: #909399; margin-top: 8px">
-            {{ item.address }} · {{ placementMap[item.placementStatus] }}
+            {{ item.address }}
           </p>
         </el-card>
       </el-col>
@@ -56,7 +64,20 @@ const userStore = useUserStore()
 const list = ref([])
 const filters = ref({ animalType: '', placementStatus: '' })
 const typeMap = { cat: '猫', dog: '狗', other: '其他' }
-const placementMap = { observing: '原地观察', sheltered: '基地收容', adoptable: '开放领养' }
+const placementMap = { observing: '原地观察', sheltered: '基地收容', adoptable: '开放领养', adopted: '已被领养' }
+const placementTagType = { observing: 'info', sheltered: 'warning', adoptable: 'success', adopted: 'success' }
+
+function getFirstPhoto(photos) {
+  if (!photos) return ''
+  return photos.split(',')[0] || ''
+}
+
+function getPhotoUrl(photo) {
+  if (!photo) return ''
+  if (photo.startsWith('http')) return photo
+  if (photo.startsWith('/')) return photo
+  return `/upload/${photo}`
+}
 
 function handleRegister() {
   if (!userStore.isLoggedIn || (userStore.userInfo?.role !== 'CERTIFIED' && userStore.userInfo?.role !== 'ADMIN')) {

@@ -23,6 +23,12 @@ export const adminApi = {
   updateUserRole(userId, role) {
     return request.post(`/admin/user/role/${userId}`, null, { params: { role } })
   },
+  banUser(userId) {
+    return request.post(`/admin/user/ban/${userId}`)
+  },
+  unbanUser(userId) {
+    return request.post(`/admin/user/unban/${userId}`)
+  },
   // 数据大盘
   dashboard() {
     return request.get('/admin/dashboard')
