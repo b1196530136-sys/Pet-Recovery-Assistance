@@ -52,6 +52,7 @@ public class ArchiveController {
         if (archive != null && archive.getUserId() != null) {
             SysUser user = userMapper.selectById(archive.getUserId());
             result.put("publisherName", user != null ? user.getNickname() : "未知用户");
+            result.put("publisherAvatar", user != null ? user.getAvatar() : null);
             result.put("publisherId", archive.getUserId());
         }
         if (archive != null) {

@@ -31,13 +31,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/user/login",
                         "/api/user/register",
                         "/api/user/login/code",
+                        "/api/user/reset-password",
                         "/api/post/search",
                         "/api/post/detail/**",
                         "/api/post/search-by-image",
                         "/api/archive/search",
                         "/api/archive/detail/**",
                         "/api/stats/**",
-                        "/api/upload/**"
+                        "/api/upload/**",
+                        "/api/verify/**"
                 );
     }
 }

@@ -10,6 +10,7 @@
             <el-option label="狗" value="dog" />
             <el-option label="其他" value="other" />
           </el-select>
+          <el-input v-if="filters.animalType === 'other'" v-model="filters.customAnimalType" placeholder="具体类型" style="width: 120px; margin-left: 8px;" />
         </el-form-item>
         <el-form-item label="安置状态">
           <el-select v-model="filters.placementStatus" placeholder="全部" clearable style="width: 150px">
@@ -62,7 +63,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const list = ref([])
-const filters = ref({ animalType: '', placementStatus: '' })
+const filters = ref({ animalType: '', customAnimalType: '', placementStatus: '' })
 const typeMap = { cat: '猫', dog: '狗', other: '其他' }
 const placementMap = { observing: '原地观察', sheltered: '基地收容', adoptable: '开放领养', adopted: '已被领养' }
 const placementTagType = { observing: 'info', sheltered: 'warning', adoptable: 'success', adopted: 'success' }
@@ -88,7 +89,10 @@ function handleRegister() {
 }
 
 async function search() {
-  const res = await archiveApi.search({ ...filters.value, page: 1, size: 20 })
+  const params = { ...filters.value, page: 1, size: 20 }
+  if (params.animalType === 'other' && params.customAnimalType) params.animalType = params.customAnimalType
+  delete params.customAnimalType
+  const res = await archiveApi.search(params)
   list.value = res.data.records
 }
 

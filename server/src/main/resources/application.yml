@@ -21,16 +21,23 @@ spring:
       max-request-size: 50MB
 
   mail:
-    host: smtp.example.com
-    port: 587
-    username: noreply@petrecovery.com
-    password: your-password
+    host: smtp.163.com
+    port: 465
+    username: b1196530136@163.com
+    password: DTcnwuLj2yYffyPD
     properties:
       mail:
         smtp:
           auth: true
           starttls:
-            enable: true
+            enable: false # 使用 SSL 时，通常不需要开启 STARTTLS
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory # 启用 SSL 加密连接
+            port: 465
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          debug: true
 
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss

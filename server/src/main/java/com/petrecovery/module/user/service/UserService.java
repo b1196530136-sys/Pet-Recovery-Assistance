@@ -13,4 +13,5 @@ public interface UserService extends IService<SysUser> {
     boolean applyCertification(Long userId, String credentials);
 
     void updateAvatar(Long userId, String avatar);
+    void resetPassword(String email, String newPassword);
 }

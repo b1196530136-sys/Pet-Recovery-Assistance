@@ -20,6 +20,8 @@ request.interceptors.request.use((config) => {
 request.interceptors.response.use(
   (response) => {
     const res = response.data
+    // Blob 响应（文件下载）直接返回
+    if (res instanceof Blob) return response
     if (res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
       return Promise.reject(new Error(res.message))

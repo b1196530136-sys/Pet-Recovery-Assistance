@@ -11,6 +11,7 @@
             <el-option label="狗" value="dog" />
             <el-option label="其他" value="other" />
           </el-select>
+          <el-input v-if="filters.petType === 'other'" v-model="filters.customPetType" placeholder="具体类型" style="width: 120px; margin-left: 8px;" />
         </el-form-item>
         <el-form-item label="地区">
           <el-input v-model="filters.province" placeholder="省/市" style="width: 150px" />
@@ -115,7 +116,7 @@ import { postApi } from '@/api/post'
 const posts = ref([])
 const page = ref(1)
 const total = ref(0)
-const filters = ref({ petType: '', province: '' })
+const filters = ref({ petType: '', customPetType: '', province: '' })
 
 // 以图搜宠
 const showImageSearch = ref(false)
@@ -137,7 +138,10 @@ function simClass(similarity) {
 }
 
 async function search() {
-  const res = await postApi.search({ ...filters.value, page: page.value, size: 20 })
+  const params = { ...filters.value, page: page.value, size: 20 }
+  if (params.petType === 'other' && params.customPetType) params.petType = params.customPetType
+  delete params.customPetType
+  const res = await postApi.search(params)
   posts.value = res.data.records
   total.value = res.data.total
 }

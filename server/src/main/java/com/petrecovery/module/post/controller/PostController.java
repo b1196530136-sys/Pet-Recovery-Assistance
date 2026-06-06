@@ -4,20 +4,26 @@ import com.petrecovery.common.Result;
 import com.petrecovery.module.post.dto.PostSearchRequest;
 import com.petrecovery.module.post.entity.PetSearchPost;
 import com.petrecovery.module.post.service.PostService;
+import com.petrecovery.module.user.entity.SysUser;
+import com.petrecovery.module.user.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/post")
 public class PostController {
 
     private final PostService postService;
+    private final UserMapper userMapper;
 
-    public PostController(PostService postService) {
+    public PostController(PostService postService, UserMapper userMapper) {
         this.postService = postService;
+        this.userMapper = userMapper;
     }
 
     @PostMapping("/create")
@@ -45,7 +51,27 @@ public class PostController {
 
     @GetMapping("/detail/{id}")
     public Result<?> detail(@PathVariable Long id) {
-        return Result.success(postService.getById(id));
+        PetSearchPost post = postService.getById(id);
+        Map<String, Object> result = new HashMap<>();
+        if (post == null) return Result.error("寻宠启事不存在");
+        result.put("id", post.getId());
+        result.put("userId", post.getUserId());
+        result.put("petType", post.getPetType());
+        result.put("breed", post.getBreed());
+        result.put("petName", post.getPetName());
+        result.put("photos", post.getPhotos());
+        result.put("lostTime", post.getLostTime());
+        result.put("longitude", post.getLongitude());
+        result.put("latitude", post.getLatitude());
+        result.put("address", post.getAddress());
+        result.put("reward", post.getReward());
+        result.put("description", post.getDescription());
+        result.put("status", post.getStatus());
+        result.put("createTime", post.getCreateTime());
+        SysUser user = userMapper.selectById(post.getUserId());
+        result.put("publisherName", user != null ? user.getNickname() : "未知用户");
+        result.put("publisherAvatar", user != null ? user.getAvatar() : null);
+        return Result.success(result);
     }
 
     @PostMapping("/resolve/{id}")

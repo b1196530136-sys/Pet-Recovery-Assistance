@@ -25,4 +25,8 @@ public class SysUser {
     private LocalDateTime updateTime;
 
     private Integer status;
+
+    private Integer loginFailCount;
+
+    private LocalDateTime lockTime;
 }

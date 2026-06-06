@@ -11,6 +11,7 @@
             <el-radio value="dog">狗</el-radio>
             <el-radio value="other">其他</el-radio>
           </el-radio-group>
+          <el-input v-if="form.animalType === 'other'" v-model="form.customAnimalType" placeholder="请填写具体类型" style="width: 200px; margin-top: 8px;" />
         </el-form-item>
         <el-form-item v-if="!isEdit" label="发现位置" required style="flex-direction: column; align-items: stretch;">
           <div style="width: 100%;">
@@ -84,7 +85,7 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const isEdit = computed(() => !!route.query.id)
-const form = reactive({ id: null, animalType: 'cat', healthStatus: '', neuteredStatus: '', immuneStatus: '', placementStatus: 'observing', description: '', photos: '', longitude: '', latitude: '', address: '' })
+const form = reactive({ id: null, animalType: 'cat', customAnimalType: '', healthStatus: '', neuteredStatus: '', immuneStatus: '', placementStatus: 'observing', description: '', photos: '', longitude: '', latitude: '', address: '' })
 const photoUrls = reactive([])
 const mapLocation = reactive({ lng: '', lat: '', address: '' })
 
@@ -127,6 +128,7 @@ async function submit() {
   form.longitude = mapLocation.lng
   form.latitude = mapLocation.lat
   form.address = mapLocation.address
+  if (form.animalType === 'other' && form.customAnimalType) form.animalType = form.customAnimalType
   if (isEdit.value) {
     await archiveApi.update(form)
     ElMessage.success('更新成功，请等待后台审核')

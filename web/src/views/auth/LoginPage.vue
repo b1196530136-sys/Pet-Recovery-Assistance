@@ -18,7 +18,32 @@
       </el-form>
       <div class="auth-links">
         <router-link to="/auth/register">没有账号？去注册</router-link>
+        <a style="margin-left: 12px; cursor: pointer; color: #909399; font-size: 13px;" @click="showResetDialog = true">忘记密码</a>
       </div>
+
+      <!-- 忘记密码弹窗 -->
+      <el-dialog v-model="showResetDialog" title="重置密码" width="420px" destroy-on-close>
+        <el-form ref="resetFormRef" :model="resetForm" :rules="resetRules" label-width="0" size="large">
+          <el-form-item prop="email">
+            <el-input v-model="resetForm.email" placeholder="邮箱" />
+          </el-form-item>
+          <el-form-item prop="code">
+            <div style="display: flex; gap: 8px; width: 100%;">
+              <el-input v-model="resetForm.code" placeholder="验证码" style="flex: 1;" />
+              <el-button :disabled="resetCodeSending || resetCountdown > 0" @click="handleResetSendCode">
+                {{ resetCountdown > 0 ? resetCountdown + 's' : '发送验证码' }}
+              </el-button>
+            </div>
+          </el-form-item>
+          <el-form-item prop="newPassword">
+            <el-input v-model="resetForm.newPassword" type="password" placeholder="新密码（6-16位，字母/数字）" show-password />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="showResetDialog = false">取消</el-button>
+          <el-button type="primary" :loading="resetLoading" @click="handleResetPassword">确认重置</el-button>
+        </template>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -28,11 +53,36 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import request from '@/utils/request'
 
 const router = useRouter()
 const userStore = useUserStore()
 const form = reactive({ email: '', password: '' })
 const loading = ref(false)
+
+// 忘记密码
+const showResetDialog = ref(false)
+const resetFormRef = ref(null)
+const resetLoading = ref(false)
+const resetCodeSending = ref(false)
+const resetCountdown = ref(0)
+let resetCountdownTimer = null
+const resetForm = reactive({ email: '', code: '', newPassword: '' })
+const resetRules = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+  ],
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
+  ],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, max: 16, message: '密码为6-16个字符', trigger: 'blur' },
+    { pattern: /^[a-zA-Z0-9]+$/, message: '密码只能包含字母和数字', trigger: 'blur' }
+  ]
+}
 
 async function handleLogin() {
   loading.value = true
@@ -45,10 +95,58 @@ async function handleLogin() {
       router.push('/')
     }
   } catch (e) {
-    ElMessage.error(e?.message || '登录失败，请检查邮箱和密码')
+    // request.js 拦截器已弹出错误提示
   } finally {
     loading.value = false
   }
+}
+
+async function handleResetSendCode() {
+  if (!resetForm.email || !/^\S+@\S+\.\S+$/.test(resetForm.email)) {
+    ElMessage.warning('请输入正确的邮箱')
+    return
+  }
+  resetCodeSending.value = true
+  try {
+    const res = await request.post('/verify/send-code', { email: resetForm.email })
+    if (res.code === 200) {
+      ElMessage.success('验证码已发送')
+      resetCountdown.value = 60
+      resetCountdownTimer = setInterval(() => {
+        resetCountdown.value--
+        if (resetCountdown.value <= 0) {
+          clearInterval(resetCountdownTimer)
+          resetCountdownTimer = null
+        }
+      }, 1000)
+    } else {
+      ElMessage.error(res.message || '发送失败')
+    }
+  } catch {
+    ElMessage.error('发送失败')
+  }
+  resetCodeSending.value = false
+}
+
+async function handleResetPassword() {
+  const valid = await resetFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  resetLoading.value = true
+  try {
+    await request.post('/user/reset-password', {
+      email: resetForm.email,
+      code: resetForm.code,
+      newPassword: resetForm.newPassword,
+    })
+    ElMessage.success('密码已重置，请登录')
+    showResetDialog.value = false
+    resetForm.email = ''
+    resetForm.code = ''
+    resetForm.newPassword = ''
+  } catch (e) {
+    ElMessage.error(e.message || '重置失败')
+  }
+  resetLoading.value = false
 }
 </script>
 

@@ -37,7 +37,12 @@
         <el-descriptions-item label="健康状况">{{ archive.healthStatus || '未知' }}</el-descriptions-item>
         <el-descriptions-item label="绝育/免疫">{{ archive.neuteredStatus || '未知' }}</el-descriptions-item>
         <el-descriptions-item label="发现地点" :span="2">{{ archive.address }}</el-descriptions-item>
-        <el-descriptions-item label="发布人">{{ archive.publisherName || '匿名用户' }}</el-descriptions-item>
+        <el-descriptions-item label="发布人">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <el-avatar :size="28" :src="archive.publisherAvatar || '/images/default-avatar.png'" />
+            <span>{{ archive.publisherName || '匿名用户' }}</span>
+          </div>
+        </el-descriptions-item>
         <el-descriptions-item label="发布时间">{{ formatTime(archive.createTime) }}</el-descriptions-item>
       </el-descriptions>
       <p style="margin-top: 16px">{{ archive.description }}</p>

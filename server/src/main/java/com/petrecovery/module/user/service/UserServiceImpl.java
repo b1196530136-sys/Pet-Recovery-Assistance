@@ -8,21 +8,56 @@ import com.petrecovery.module.user.mapper.UserMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements UserService {
 
     private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
+    private static final int MAX_FAIL_COUNT = 5;
+    private static final int LOCK_MINUTES = 30;
 
     @Override
     public SysUser login(String email, String password) {
         SysUser user = getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getEmail, email));
-        if (user != null && user.getStatus() != null && user.getStatus() == 0) {
+        if (user == null) {
+            throw new RuntimeException("邮箱或密码错误");
+        }
+        if (user.getStatus() != null && user.getStatus() == 0) {
             throw new RuntimeException("账号已被封禁");
         }
-        if (user != null && ENCODER.matches(password, user.getPassword())) {
-            return user;
+        // 检查是否被锁定
+        if (user.getLockTime() != null && user.getLockTime().isAfter(LocalDateTime.now())) {
+            long remainMinutes = java.time.Duration.between(LocalDateTime.now(), user.getLockTime()).toMinutes() + 1;
+            throw new RuntimeException("账号已锁定，请" + remainMinutes + "分钟后再试");
         }
-        return null;
+        // 锁定已过期，重置失败次数
+        if (user.getLockTime() != null && user.getLockTime().isBefore(LocalDateTime.now())) {
+            user.setLoginFailCount(0);
+            user.setLockTime(null);
+            updateById(user);
+        }
+        if (ENCODER.matches(password, user.getPassword())) {
+            // 登录成功，重置失败次数
+            if (user.getLoginFailCount() != null && user.getLoginFailCount() > 0) {
+                user.setLoginFailCount(0);
+                user.setLockTime(null);
+                updateById(user);
+            }
+            return user;
+        } else {
+            // 登录失败，增加失败次数
+            int failCount = (user.getLoginFailCount() == null ? 0 : user.getLoginFailCount()) + 1;
+            user.setLoginFailCount(failCount);
+            if (failCount >= MAX_FAIL_COUNT) {
+                user.setLockTime(LocalDateTime.now().plusMinutes(LOCK_MINUTES));
+                updateById(user);
+                throw new RuntimeException("密码错误已达" + MAX_FAIL_COUNT + "次，账号锁定" + LOCK_MINUTES + "分钟");
+            } else {
+                updateById(user);
+                throw new RuntimeException("邮箱或密码错误，还剩" + (MAX_FAIL_COUNT - failCount) + "次机会");
+            }
+        }
     }
 
     @Override
@@ -66,5 +101,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
             user.setAvatar(avatar);
             updateById(user);
         }
+    }
+
+    @Override
+    public void resetPassword(String email, String newPassword) {
+        SysUser user = getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getEmail, email));
+        if (user == null) {
+            throw new RuntimeException("该邮箱未注册");
+        }
+        user.setPassword(ENCODER.encode(newPassword));
+        updateById(user);
     }
 }

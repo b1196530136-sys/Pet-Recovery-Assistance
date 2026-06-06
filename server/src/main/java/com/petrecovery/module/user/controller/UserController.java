@@ -5,6 +5,7 @@ import com.petrecovery.config.JwtConfig;
 import com.petrecovery.module.user.dto.LoginRequest;
 import com.petrecovery.module.user.entity.SysUser;
 import com.petrecovery.module.user.service.UserService;
+import com.petrecovery.module.verify.service.VerifyCodeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,29 +18,41 @@ public class UserController {
 
     private final UserService userService;
     private final JwtConfig jwtConfig;
+    private final VerifyCodeService verifyCodeService;
 
-    public UserController(UserService userService, JwtConfig jwtConfig) {
+    public UserController(UserService userService, JwtConfig jwtConfig, VerifyCodeService verifyCodeService) {
         this.userService = userService;
         this.jwtConfig = jwtConfig;
+        this.verifyCodeService = verifyCodeService;
     }
 
     @PostMapping("/register")
-    public Result<?> register(@RequestBody SysUser user) {
+    public Result<?> register(@RequestBody Map<String, Object> body) {
+        String code = (String) body.get("code");
+        String email = (String) body.get("email");
+        if (code == null || !verifyCodeService.verifyCode(email, code)) {
+            return Result.error("验证码错误或已过期");
+        }
+        SysUser user = new SysUser();
+        user.setEmail(email);
+        user.setNickname((String) body.get("nickname"));
+        user.setPassword((String) body.get("password"));
         userService.register(user);
         return Result.success();
     }
 
     @PostMapping("/login")
     public Result<?> login(@RequestBody LoginRequest request) {
-        SysUser user = userService.login(request.getEmail(), request.getPassword());
-        if (user == null) {
-            return Result.error("邮箱或密码错误");
+        try {
+            SysUser user = userService.login(request.getEmail(), request.getPassword());
+            String token = jwtConfig.generateToken(user.getId(), user.getRole());
+            Map<String, Object> data = new HashMap<>();
+            data.put("token", token);
+            data.put("user", toSafeMap(user));
+            return Result.success(data);
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
         }
-        String token = jwtConfig.generateToken(user.getId(), user.getRole());
-        Map<String, Object> data = new HashMap<>();
-        data.put("token", token);
-        data.put("user", toSafeMap(user));
-        return Result.success(data);
     }
 
     @PostMapping("/login/code")
@@ -66,6 +79,21 @@ public class UserController {
             return Result.error("用户不存在");
         }
         return Result.success(toSafeMap(user));
+    }
+
+    @PostMapping("/reset-password")
+    public Result<?> resetPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String code = body.get("code");
+        String newPassword = body.get("newPassword");
+        if (email == null || code == null || newPassword == null) {
+            return Result.error("参数不完整");
+        }
+        if (!verifyCodeService.verifyCode(email, code)) {
+            return Result.error("验证码错误或已过期");
+        }
+        userService.resetPassword(email, newPassword);
+        return Result.success();
     }
 
     @PostMapping("/apply-certification")

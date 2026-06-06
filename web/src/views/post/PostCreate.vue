@@ -9,6 +9,7 @@
             <el-radio value="dog">狗</el-radio>
             <el-radio value="other">其他</el-radio>
           </el-radio-group>
+          <el-input v-if="form.petType === 'other'" v-model="form.customPetType" placeholder="请填写具体类型" style="width: 200px; margin-top: 8px;" />
         </el-form-item>
         <el-form-item label="品种">
           <el-input v-model="form.breed" placeholder="如已知品种请填写" />
@@ -70,7 +71,7 @@ import AmapPicker from '@/components/map/AmapPicker.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
-const form = reactive({ petType: 'cat', breed: '', petName: '', lostTime: '', reward: '', description: '', photos: '', longitude: '', latitude: '', address: '' })
+const form = reactive({ petType: 'cat', customPetType: '', breed: '', petName: '', lostTime: '', reward: '', description: '', photos: '', longitude: '', latitude: '', address: '' })
 const photoUrls = reactive([])
 
 const uploadHeaders = computed(() => ({
@@ -120,6 +121,7 @@ async function submit() {
   form.longitude = mapLocation.lng
   form.latitude = mapLocation.lat
   form.address = mapLocation.address
+  if (form.petType === 'other' && form.customPetType) form.petType = form.customPetType
   await postApi.create(form)
   ElMessage.success('提交成功，请等待后台审核')
   router.push('/posts')

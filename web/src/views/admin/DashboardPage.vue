@@ -50,16 +50,33 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { adminApi } from '@/api/admin'
+import request from '@/utils/request'
 
 const data = ref({ totalUsers: 0, activePosts: 0, resolvedPosts: 0, totalArchives: 0 })
 
+async function downloadExport(url, filename) {
+  try {
+    const res = await request.get(url, { responseType: 'blob' })
+    // 拦截器对 blob 返回了完整 response，取 response.data
+    const blob = res.data || res
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob instanceof Blob ? blob : new Blob([blob]))
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch {
+    ElMessage.error('导出失败')
+  }
+}
+
 function exportArchive() {
-  window.open('/api/admin/export/archive', '_blank')
+  downloadExport('/admin/export/archive', '动物登记台账.xlsx')
 }
 
 function exportPosts() {
-  window.open('/api/admin/export/resolved-posts', '_blank')
+  downloadExport('/admin/export/resolved-posts', '寻宠成功案例统计.xlsx')
 }
 
 onMounted(async () => {

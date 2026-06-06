@@ -15,7 +15,12 @@
         </div>
       </div>
 
-      <el-descriptions :column="2" border style="margin-top: 20px">
+      <div class="publisher-info" style="display: flex; align-items: center; gap: 10px; margin: 16px 0; padding: 10px 16px; background: #f5f7fa; border-radius: 8px;">
+        <el-avatar :size="36" :src="post.publisherAvatar || '/images/default-avatar.png'" />
+        <span style="font-size: 14px; color: #606266;">发布人：{{ post.publisherName || '未知用户' }}</span>
+      </div>
+
+      <el-descriptions :column="2" border>
         <el-descriptions-item label="品种">{{ post.breed || '未知' }}</el-descriptions-item>
         <el-descriptions-item label="丢失时间">{{ post.lostTime }}</el-descriptions-item>
         <el-descriptions-item label="丢失地点" :span="2">{{ post.address }}</el-descriptions-item>
