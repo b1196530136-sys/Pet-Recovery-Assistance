@@ -13,6 +13,9 @@
           </el-radio-group>
           <el-input v-if="form.animalType === 'other'" v-model="form.customAnimalType" placeholder="请填写具体类型" style="width: 200px; margin-top: 8px;" />
         </el-form-item>
+        <el-form-item label="动物昵称">
+          <el-input v-model="form.name" placeholder="如有多只猫狗可区别称呼" />
+        </el-form-item>
         <el-form-item v-if="!isEdit" label="发现位置" required style="flex-direction: column; align-items: stretch;">
           <div style="width: 100%;">
             <AmapPicker v-model="mapLocation" />
@@ -85,7 +88,7 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const isEdit = computed(() => !!route.query.id)
-const form = reactive({ id: null, animalType: 'cat', customAnimalType: '', healthStatus: '', neuteredStatus: '', immuneStatus: '', placementStatus: 'observing', description: '', photos: '', longitude: '', latitude: '', address: '' })
+const form = reactive({ id: null, animalType: 'cat', customAnimalType: '', name: '', healthStatus: '', neuteredStatus: '', immuneStatus: '', placementStatus: 'observing', description: '', photos: '', longitude: '', latitude: '', address: '' })
 const photoUrls = reactive([])
 const mapLocation = reactive({ lng: '', lat: '', address: '' })
 
@@ -146,6 +149,7 @@ onMounted(async () => {
     Object.assign(form, {
       id: data.id,
       animalType: data.animalType,
+      name: data.name || '',
       healthStatus: data.healthStatus || '',
       neuteredStatus: data.neuteredStatus || '',
       immuneStatus: data.immuneStatus || '',

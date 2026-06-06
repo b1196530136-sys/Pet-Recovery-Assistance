@@ -81,6 +81,11 @@ public class PostController {
         return Result.success();
     }
 
+    @GetMapping("/clue-trail/{postId}")
+    public Result<?> clueTrail(@PathVariable Long postId) {
+        return Result.success(postService.getClueTrail(postId));
+    }
+
     @GetMapping("/my")
     public Result<?> myPosts(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");

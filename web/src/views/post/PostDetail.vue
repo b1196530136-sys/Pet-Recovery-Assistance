@@ -144,10 +144,20 @@ function onCluePhotoRemove(_file, fileList) {
 }
 
 async function submitClue() {
+  // 校验：目击时间不能早于丢失时间
+  if (clueForm.value.clueTime && post.value.lostTime) {
+    const clueDate = new Date(clueForm.value.clueTime).getTime()
+    const lostDate = new Date(post.value.lostTime).getTime()
+    if (clueDate < lostDate) {
+      ElMessage.warning('目击时间不能早于丢失时间')
+      return
+    }
+  }
   const data = {
     postId: post.value.id,
     receiverId: post.value.userId,
     content: clueForm.value.content,
+    msgType: 1
   }
   if (clueForm.value.clueTime) {
     data.clueTime = clueForm.value.clueTime
@@ -185,15 +195,50 @@ onMounted(async () => {
     AMapLoader.load({
       key: 'eb4473d0bf626ceed61dbb79c86ba988',
       version: '2.0',
-    }).then((AMap) => {
+    }).then(async (AMap) => {
+      const lng = parseFloat(post.value.longitude)
+      const lat = parseFloat(post.value.latitude)
       const map = new AMap.Map(mapContainer.value, {
-        zoom: 15,
-        center: [parseFloat(post.value.longitude), parseFloat(post.value.latitude)],
+        zoom: 14,
+        center: [lng, lat],
       })
-      const marker = new AMap.Marker({
-        position: [parseFloat(post.value.longitude), parseFloat(post.value.latitude)],
+      // 丢失地点标记
+      new AMap.Marker({
+        position: [lng, lat],
+        label: { content: '<div style="background:#f56c6c;color:#fff;padding:2px 6px;border-radius:4px;font-size:12px">丢失地点</div>', direction: 'top' },
       })
-      map.add(marker)
+
+      // 发布者查看线索轨迹
+      if (post.value.userId === userId.value) {
+        try {
+          const trailRes = await postApi.clueTrail(post.value.id)
+          const clues = trailRes.data || []
+          if (clues.length > 0) {
+            const path = clues.map(c => [parseFloat(c.clueLongitude), parseFloat(c.clueLatitude)])
+            // 轨迹连线
+            new AMap.Polyline({
+              map,
+              path,
+              strokeColor: '#e6a23c',
+              strokeWeight: 4,
+              strokeOpacity: 0.8,
+              lineJoin: 'round',
+              lineCap: 'round',
+              showDir: true,
+            })
+            // 线索标记
+            clues.forEach((c, i) => {
+              new AMap.Marker({
+                map,
+                position: path[i],
+                label: { content: '<div style="background:#e6a23c;color:#fff;padding:2px 6px;border-radius:4px;font-size:12px">线索' + (i + 1) + '</div>', direction: 'top' },
+              })
+            })
+            // 自适应视野
+            map.setFitView()
+          }
+        } catch { /* ignore */ }
+      }
     })
   }
 })

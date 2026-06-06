@@ -18,4 +18,5 @@ public interface PostService extends IService<PetSearchPost> {
     boolean deletePost(Long postId, Long userId);
     List<Map<String, Object>> searchByImage(byte[] imageBytes);
     void computeHashForExisting();
+    List<Map<String, Object>> getClueTrail(Long postId);
 }

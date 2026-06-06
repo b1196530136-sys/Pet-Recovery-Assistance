@@ -39,7 +39,7 @@
             style="width: 100%; height: 180px; border-radius: 6px; margin-bottom: 12px"
           />
           <div v-else style="width: 100%; height: 180px; border-radius: 6px; margin-bottom: 12px; background: #f5f7fa; display: flex; align-items: center; justify-content: center; color: #c0c4cc; font-size: 13px">暂无图片</div>
-          <h3>{{ typeMap[item.animalType] }}</h3>
+          <h3>{{ typeMap[item.animalType] }}<span v-if="item.name" style="font-weight: normal; font-size: 14px; color: #909399; margin-left: 6px;">{{ item.name }}</span></h3>
           <el-tag size="small" :type="placementTagType[item.placementStatus]" style="margin-top: 8px">{{ placementMap[item.placementStatus] || '未知' }}</el-tag>
           <p style="font-size: 13px; color: #909399; margin-top: 8px">
             {{ item.address }}

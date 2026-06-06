@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS stray_animal_archive (
     id               BIGINT        AUTO_INCREMENT PRIMARY KEY COMMENT '档案ID',
     user_id          BIGINT        NOT NULL COMMENT '登记人ID(认证用户)',
     animal_type      VARCHAR(20)   NOT NULL COMMENT '动物大类: cat/dog/other',
+    name             VARCHAR(64)   DEFAULT NULL COMMENT '动物昵称',
     longitude        DECIMAL(10,7) DEFAULT NULL COMMENT '发现经度(BD-09)',
     latitude         DECIMAL(10,7) DEFAULT NULL COMMENT '发现纬度(BD-09)',
     address          VARCHAR(512)  DEFAULT NULL COMMENT '文字地址',

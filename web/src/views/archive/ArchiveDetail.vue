@@ -33,6 +33,7 @@
 
       <el-descriptions :column="2" border>
         <el-descriptions-item label="动物类型">{{ typeMap[archive.animalType] }}</el-descriptions-item>
+        <el-descriptions-item label="动物昵称">{{ archive.name || '无' }}</el-descriptions-item>
         <el-descriptions-item label="安置状态">{{ placementMap[archive.placementStatus] }}</el-descriptions-item>
         <el-descriptions-item label="健康状况">{{ archive.healthStatus || '未知' }}</el-descriptions-item>
         <el-descriptions-item label="绝育/免疫">{{ archive.neuteredStatus || '未知' }}</el-descriptions-item>

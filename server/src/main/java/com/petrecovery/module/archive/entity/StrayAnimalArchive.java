@@ -13,6 +13,7 @@ public class StrayAnimalArchive {
 
     private Long userId;
     private String animalType;
+    private String name;
     private BigDecimal longitude;
     private BigDecimal latitude;
     private String address;

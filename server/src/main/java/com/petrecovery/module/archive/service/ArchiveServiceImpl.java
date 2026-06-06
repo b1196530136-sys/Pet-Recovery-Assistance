@@ -32,18 +32,18 @@ public class ArchiveServiceImpl extends ServiceImpl<ArchiveMapper, StrayAnimalAr
 
         // 将可编辑字段序列化为JSON存入pendingData，原数据不变
         try {
-            Map<String, Object> pending = Map.of(
-                "animalType", archive.getAnimalType() != null ? archive.getAnimalType() : existing.getAnimalType(),
-                "longitude", archive.getLongitude(),
-                "latitude", archive.getLatitude(),
-                "address", archive.getAddress() != null ? archive.getAddress() : existing.getAddress(),
-                "healthStatus", archive.getHealthStatus(),
-                "neuteredStatus", archive.getNeuteredStatus(),
-                "immuneStatus", archive.getImmuneStatus(),
-                "placementStatus", archive.getPlacementStatus(),
-                "photos", archive.getPhotos() != null ? archive.getPhotos() : existing.getPhotos(),
-                "description", archive.getDescription()
-            );
+            Map<String, Object> pending = new java.util.HashMap<>();
+            pending.put("animalType", archive.getAnimalType() != null ? archive.getAnimalType() : existing.getAnimalType());
+            pending.put("name", archive.getName() != null ? archive.getName() : existing.getName());
+            pending.put("longitude", archive.getLongitude() != null ? archive.getLongitude() : existing.getLongitude());
+            pending.put("latitude", archive.getLatitude() != null ? archive.getLatitude() : existing.getLatitude());
+            pending.put("address", archive.getAddress() != null ? archive.getAddress() : existing.getAddress());
+            pending.put("healthStatus", archive.getHealthStatus() != null ? archive.getHealthStatus() : existing.getHealthStatus());
+            pending.put("neuteredStatus", archive.getNeuteredStatus() != null ? archive.getNeuteredStatus() : existing.getNeuteredStatus());
+            pending.put("immuneStatus", archive.getImmuneStatus() != null ? archive.getImmuneStatus() : existing.getImmuneStatus());
+            pending.put("placementStatus", archive.getPlacementStatus() != null ? archive.getPlacementStatus() : existing.getPlacementStatus());
+            pending.put("photos", archive.getPhotos() != null ? archive.getPhotos() : existing.getPhotos());
+            pending.put("description", archive.getDescription() != null ? archive.getDescription() : existing.getDescription());
             existing.setPendingData(objectMapper.writeValueAsString(pending));
             // 修改时保持原状态(APPROVED)，不改为PENDING，确保档案大厅仍显示原数据
             existing.setRejectReason(null);
@@ -71,6 +71,7 @@ public class ArchiveServiceImpl extends ServiceImpl<ArchiveMapper, StrayAnimalAr
             try {
                 Map<String, Object> pending = objectMapper.readValue(archive.getPendingData(), Map.class);
                 if (pending.get("animalType") != null) archive.setAnimalType((String) pending.get("animalType"));
+                if (pending.containsKey("name")) archive.setName((String) pending.get("name"));
                 if (pending.get("longitude") != null) archive.setLongitude(new java.math.BigDecimal(pending.get("longitude").toString()));
                 if (pending.get("latitude") != null) archive.setLatitude(new java.math.BigDecimal(pending.get("latitude").toString()));
                 if (pending.get("address") != null) archive.setAddress((String) pending.get("address"));
@@ -96,6 +97,7 @@ public class ArchiveServiceImpl extends ServiceImpl<ArchiveMapper, StrayAnimalAr
           .set(StrayAnimalArchive::getPendingData, archive.getPendingData());
         if (archive.getPendingData() == null && archive.getAnimalType() != null) {
             uw.set(StrayAnimalArchive::getAnimalType, archive.getAnimalType())
+              .set(StrayAnimalArchive::getName, archive.getName())
               .set(StrayAnimalArchive::getLongitude, archive.getLongitude())
               .set(StrayAnimalArchive::getLatitude, archive.getLatitude())
               .set(StrayAnimalArchive::getAddress, archive.getAddress())

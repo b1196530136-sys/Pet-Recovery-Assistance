@@ -68,6 +68,7 @@ public class ArchiveController {
         map.put("id", archive.getId());
         map.put("userId", archive.getUserId());
         map.put("animalType", archive.getAnimalType());
+        map.put("name", archive.getName());
         map.put("longitude", archive.getLongitude());
         map.put("latitude", archive.getLatitude());
         map.put("address", archive.getAddress());

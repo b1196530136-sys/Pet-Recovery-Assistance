@@ -46,30 +46,33 @@
                  class="msg-item"
                  :class="{ mine: msg.senderId === userId }">
               <el-avatar v-if="msg.senderId !== userId" :size="36" :src="getUserAvatar(msg.senderId)" class="msg-avatar" />
-              <div class="msg-bubble"
-                   :class="{ 'clue-bubble': msg.msgType === 1 }"
-                   @click="msg.msgType === 1 && showClueDetail(msg)">
-                <p v-if="msg.msgType === 1" style="color: #e6a23c; font-weight: bold; margin-bottom: 8px">📌 目击线索</p>
-                <p v-if="msg.content" style="margin-bottom: 8px">{{ msg.content }}</p>
-                <div v-if="msg.cluePhotos && msg.cluePhotos.trim()" class="clue-photos">
+              <div v-if="msg.msgType === 1" class="clue-card" @click="showClueDetail(msg)">
+                <div class="clue-card-header">
+                  <span class="clue-card-title">📌 目击线索</span>
+                </div>
+                <p v-if="msg.content" class="clue-card-desc">{{ msg.content }}</p>
+                <div v-if="msg.cluePhotos && msg.cluePhotos.trim()" class="clue-card-photo">
                   <el-image
-                    v-for="(url, idx) in parsePhotos(msg.cluePhotos)"
-                    :key="idx"
-                    :src="url"
+                    :src="parsePhotos(msg.cluePhotos)[0]"
                     :preview-src-list="parsePhotos(msg.cluePhotos)"
-                    :initial-index="idx"
-                    style="width: 120px; height: 120px; border-radius: 6px;"
+                    style="width: 100%; height: 140px; border-radius: 6px;"
                     fit="cover"
                     preview-teleported
                   >
                     <template #error>
-                      <div class="image-error">加载失败</div>
+                      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f7fa;color:#c0c4cc;font-size:12px">加载失败</div>
                     </template>
                   </el-image>
                 </div>
-                <p v-if="msg.clueAddress" style="font-size: 12px; color: #909399; margin-top: 6px">
+                <p v-if="msg.clueAddress" class="clue-card-location">
                   📍 {{ msg.clueTime }} · {{ msg.clueAddress }}
                 </p>
+                <small class="clue-card-time">{{ msg.createTime }}</small>
+              </div>
+              <div v-else
+                   class="msg-bubble"
+                   @click="msg.msgType === 1 && showClueDetail(msg)">
+                <p v-if="msg.content" style="margin-bottom: 8px">{{ msg.content }}</p>
                 <small style="color: #c0c4cc; font-size: 11px">{{ msg.createTime }}</small>
               </div>
               <el-avatar v-if="msg.senderId === userId" :size="36" :src="getUserAvatar(msg.senderId)" class="msg-avatar" />
@@ -202,7 +205,12 @@ function showClueDetail(msg) {
   // 弹窗打开后渲染地图
   nextTick(() => {
     if (msg.clueLongitude && msg.clueLatitude && clueMapContainer.value) {
-      renderClueMap(msg)
+      if (!window.AMap) {
+        window._AMapSecurityConfig = { securityJsCode: 'd2a114ab986fe29825688ec540030b5a' }
+        AMapLoader.load({ key: 'eb4473d0bf626ceed61dbb79c86ba988', version: '2.0' }).then(() => { renderClueMap(msg) })
+      } else {
+        renderClueMap(msg)
+      }
     }
   })
 }
@@ -381,8 +389,14 @@ onUnmounted(() => {
 .msg-item.mine .msg-bubble small { color: rgba(255,255,255,0.7); }
 .msg-item.mine .clue-bubble { background: #e6a23c; }
 .clue-photos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; padding: 4px; background: #fafafa; border-radius: 6px; }
-.clue-bubble { cursor: pointer; transition: box-shadow 0.2s, transform 0.1s; }
-.clue-bubble:hover { box-shadow: 0 2px 12px rgba(230, 162, 60, 0.25); transform: translateY(-1px); }
+.clue-card { max-width: 280px; padding: 12px; border-radius: 10px; background: #fff; border: 1px solid #e8e8e8; cursor: pointer; transition: box-shadow 0.2s, transform 0.1s; box-sizing: border-box; }
+.clue-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-1px); }
+.clue-card-header { margin-bottom: 8px; }
+.clue-card-title { color: #e6a23c; font-weight: bold; font-size: 14px; }
+.clue-card-desc { color: #303133; font-size: 13px; margin-bottom: 8px; line-height: 1.5; word-break: break-all; }
+.clue-card-photo { margin-bottom: 8px; border-radius: 6px; overflow: hidden; background: #f5f7fa; }
+.clue-card-location { color: #909399; font-size: 12px; margin-top: 6px; line-height: 1.4; }
+.clue-card-time { color: #c0c4cc; font-size: 11px; display: block; margin-top: 6px; }
 .image-error { width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #c0c4cc; font-size: 12px; }
 .detail-photos { display: flex; gap: 10px; flex-wrap: wrap; padding: 8px; background: #f9f9f9; border-radius: 8px; }
 .image-error-detail { width: 180px; height: 180px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; color: #c0c4cc; font-size: 13px; }

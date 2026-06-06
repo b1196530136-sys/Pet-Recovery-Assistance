@@ -93,6 +93,28 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> impl
     }
 
     @Override
+    public List<Map<String, Object>> getClueTrail(Long postId) {
+        List<SysImMessage> clues = messageMapper.selectList(
+                new LambdaQueryWrapper<SysImMessage>()
+                        .eq(SysImMessage::getPostId, postId)
+                        .eq(SysImMessage::getMsgType, 1)
+                        .isNotNull(SysImMessage::getClueLongitude)
+                        .isNotNull(SysImMessage::getClueLatitude)
+                        .orderByAsc(SysImMessage::getClueTime));
+        return clues.stream().map(c -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("senderId", c.getSenderId());
+            m.put("content", c.getContent());
+            m.put("clueTime", c.getClueTime());
+            m.put("clueLongitude", c.getClueLongitude());
+            m.put("clueLatitude", c.getClueLatitude());
+            m.put("clueAddress", c.getClueAddress());
+            return m;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
     public List<PetSearchPost> getMyPosts(Long userId) {
         return list(new LambdaQueryWrapper<PetSearchPost>()
                 .eq(PetSearchPost::getUserId, userId)

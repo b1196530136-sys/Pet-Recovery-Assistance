@@ -22,6 +22,9 @@ export const postApi = {
   delete(id) {
     return request.post(`/post/delete/${id}`)
   },
+  clueTrail(postId) {
+    return request.get(`/post/clue-trail/${postId}`)
+  },
   searchByImage(file) {
     const formData = new FormData()
     formData.append('file', file)

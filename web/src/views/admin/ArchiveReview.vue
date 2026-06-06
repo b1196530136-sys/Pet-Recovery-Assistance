@@ -6,7 +6,8 @@
       <el-table-column prop="animalType" label="类型" width="80">
         <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
       </el-table-column>
-      <el-table-column prop="address" label="发现地址" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="name" label="昵称" width="100" />
+      <el-table-column prop="address" label="发现地址" min-width="140" show-overflow-tooltip />
       <el-table-column label="现场照片" width="120">
         <template #default="{ row }">
           <el-image v-if="row.photos" :src="row.photos.split(',')[0]" :preview-src-list="row.photos.split(',')" style="width: 60px; height: 60px" fit="cover" preview-teleported />
@@ -77,6 +78,7 @@ const statusMap = { PENDING: '待审核', APPROVED: '已通过', REJECTED: '已�
 
 const fieldLabels = {
   animalType: '动物类型',
+  name: '动物昵称',
   address: '发现地址',
   healthStatus: '健康状况',
   neuteredStatus: '绝育状态',
@@ -103,6 +105,7 @@ function showDiff(row) {
     const pending = JSON.parse(row.pendingData)
     const old = {
       animalType: typeMap[row.animalType] || row.animalType,
+      name: row.name || '',
       address: row.address,
       healthStatus: row.healthStatus,
       neuteredStatus: row.neuteredStatus,
@@ -113,6 +116,7 @@ function showDiff(row) {
     }
     const next = {
       animalType: typeMap[pending.animalType] || pending.animalType,
+      name: pending.name || '',
       address: pending.address,
       healthStatus: pending.healthStatus,
       neuteredStatus: pending.neuteredStatus,
