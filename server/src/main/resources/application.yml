@@ -62,3 +62,30 @@ upload:
   local:
     path: ./upload
     max-file-size: 5242880
+
+# 快瞳宠物图像相似度对比接口配置
+# 接口文档: https://ai.inspirvision.cn/s/api/recognitionComparedFromPath
+pet-recognition:
+  api-url: https://ai.inspirvision.cn/s/api/recognitionComparedFromPath
+  # Token获取接口: https://ai.inspirvision.cn/s/api/getAccessToken
+  token-url: https://ai.inspirvision.cn/s/api/getAccessToken
+  # 快瞳官网注册后获取的 accessKey 和 accessSecret
+  access-key: APPID_02KS011b7cH29GsS
+  access-secret: 9991fe02f2541e432b2910b62ac3ed42
+  # recogType: 0=鼻子(局部特征), 1=正脸
+  recog-type: 1
+  # petType: 0=狗, 1=猫
+  default-pet-type: 0
+  # 相似度阈值（confidence范围0~100，越高越相似）
+  similarity-threshold: 60
+
+# 免费图床配置（用于以图搜宠：将本地图片上传获取公网URL后传给快瞳API）
+# ImgBB免费注册获取API Key: https://imgbb.com/api
+image-hosting:
+  provider: imgbb
+  imgbb:
+    api-url: https://api.imgbb.com/1/upload
+    api-key: 9fec137da23ad3b1cf4263d14ab74e24
+    # 图片过期时间（秒），0=永不过期，86400=1天，604800=7天
+    expiration: 604800
+

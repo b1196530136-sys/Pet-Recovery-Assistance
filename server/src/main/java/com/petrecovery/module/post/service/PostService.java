@@ -17,6 +17,10 @@ public interface PostService extends IService<PetSearchPost> {
     List<PetSearchPost> getCluedPosts(Long userId);
     boolean deletePost(Long postId, Long userId);
     List<Map<String, Object>> searchByImage(byte[] imageBytes);
+    /**
+     * 以图搜宠（图床中转模式）：传入已上传到图床的图片URL进行宠物相似度对比
+     */
+    List<Map<String, Object>> searchByImageUrl(String imageUrl);
     void computeHashForExisting();
     List<Map<String, Object>> getClueTrail(Long postId);
 }

@@ -1,3 +1,5 @@
+/*
+ * ===== 以下为原图像识别（感知哈希）相关代码，已注释 =====
 package com.petrecovery.common.util;
 
 import net.coobird.thumbnailator.Thumbnails;
@@ -12,9 +14,6 @@ public class ImageHashUtil {
 
     private static final int HASH_SIZE = 8;
 
-    /**
-     * 计算图片的感知哈希值（64-bit，以16进制字符串表示）
-     */
     public static String computeHash(File imageFile) {
         try {
             BufferedImage img = Thumbnails.of(imageFile)
@@ -27,9 +26,6 @@ public class ImageHashUtil {
         }
     }
 
-    /**
-     * 从字节数组计算感知哈希值
-     */
     public static String computeHash(byte[] imageBytes) {
         try (InputStream is = new ByteArrayInputStream(imageBytes)) {
             BufferedImage img = Thumbnails.of(is)
@@ -69,9 +65,6 @@ public class ImageHashUtil {
         return hash.toString();
     }
 
-    /**
-     * 计算汉明距离
-     */
     public static int hammingDistance(String hash1, String hash2) {
         int len = Math.min(hash1.length(), hash2.length());
         int dist = 0;
@@ -84,12 +77,11 @@ public class ImageHashUtil {
         return dist;
     }
 
-    /**
-     * 计算相似度百分比（0~100）
-     */
     public static double similarity(String hash1, String hash2) {
         int maxDist = Math.max(hash1.length(), hash2.length());
         if (maxDist == 0) return 100.0;
         return (1.0 - (double) hammingDistance(hash1, hash2) / maxDist) * 100;
     }
 }
+* ===== 原图像识别代码注释结束 =====
+*/

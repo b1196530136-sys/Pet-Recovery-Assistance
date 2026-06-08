@@ -23,7 +23,7 @@ public class PetSearchPost {
     private String reward;
     private String description;
     private String status;
-    private String photoHash;
+    // private String photoHash;  // [原图像识别] 已注释 - 感知哈希值字段
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

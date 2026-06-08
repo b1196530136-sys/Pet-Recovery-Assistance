@@ -68,7 +68,7 @@
       />
     </div>
 
-    <!-- 以图搜宠弹窗 -->
+    <!-- 以图搜宠弹窗（调用阿里云宠物相似度对比API） -->
     <el-dialog v-model="showImageSearch" title="以图搜宠" width="500px" @close="imageSearchResult = null">
       <div v-if="!imageSearchResult" style="text-align: center; padding: 20px 0;">
         <el-upload
@@ -84,7 +84,7 @@
           </el-button>
         </el-upload>
         <p style="font-size: 13px; color: #909399; margin-top: 12px;">
-          上传一张宠物照片，系统将自动比对寻宠信息中的照片，显示相似度 ≥ 60% 的结果
+          上传一张宠物照片，系统将通过AI图像识别接口与寻宠信息中的照片进行比对
         </p>
         <el-image v-if="previewImage" :src="previewImage" style="max-width: 200px; max-height: 200px; margin-top: 16px; border-radius: 8px;" fit="contain" />
       </div>
@@ -95,11 +95,12 @@
             <div style="flex: 1; min-width: 0;">
               <div style="font-weight: 500;">{{ item.petName || 'unnamed' }} ({{ typeMap[item.petType] }})</div>
               <div style="font-size: 12px; color: #909399; margin-top: 4px;">{{ item.address }}</div>
+              <div v-if="item.recognitionDesc" style="font-size: 11px; color: #e6a23c; margin-top: 2px;">{{ item.recognitionDesc }}</div>
             </div>
             <div class="similarity-tag" :class="simClass(item.similarity)">{{ item.similarity }}%</div>
           </div>
         </div>
-        <el-empty v-else description="未找到相似度达到 60% 的寻宠信息" />
+        <el-empty v-else description="未找到相似的寻宠信息，请尝试更换照片或手动搜索" />
       </div>
       <template #footer>
         <el-button @click="resetImageSearch">{{ imageSearchResult ? '重新搜索' : '取消' }}</el-button>
@@ -118,7 +119,7 @@ const page = ref(1)
 const total = ref(0)
 const filters = ref({ petType: '', customPetType: '', province: '' })
 
-// 以图搜宠
+// 以图搜宠相关变量和方法
 const showImageSearch = ref(false)
 const imageSearching = ref(false)
 const imageSearchResult = ref(null)
@@ -157,18 +158,39 @@ function onImageSearchChange(file) {
     return
   }
   previewImage.value = URL.createObjectURL(file.raw)
-  searchByImage(file.raw)
+  // 先上传到图床，再进行以图搜宠
+  uploadAndSearchByImage(file.raw)
 }
 
-async function searchByImage(file) {
+async function uploadAndSearchByImage(file) {
   imageSearching.value = true
   try {
-    const res = await postApi.searchByImage(file)
+    // 1. 先将图片上传到图床
+    const uploadRes = await uploadToImageHost(file)
+    if (!uploadRes || !uploadRes.data) {
+      throw new Error('图片上传到图床失败')
+    }
+    const imageUrl = uploadRes.data
+    console.log('图片已上传到图床:', imageUrl)
+
+    // 2. 使用图床URL进行以图搜宠
+    const res = await postApi.searchByImageUrl(imageUrl)
     imageSearchResult.value = res.data || []
-  } catch {
-    ElMessage.error('图片搜索失败')
+  } catch (err) {
+    const msg = err?.response?.data?.message || err?.message || '图片搜索失败，请稍后重试'
+    ElMessage.error(msg)
   }
   imageSearching.value = false
+}
+
+async function uploadToImageHost(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  // 复用现有的图床上传接口
+  const request = (await import('@/utils/request')).default
+  return request.post('/upload/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
 }
 
 function resetImageSearch() {

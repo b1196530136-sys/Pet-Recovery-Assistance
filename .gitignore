@@ -19,3 +19,10 @@ build/
 
 # Environment
 .env
+
+#image
+*.png
+*.jpg
+
+#document
+*.docx
