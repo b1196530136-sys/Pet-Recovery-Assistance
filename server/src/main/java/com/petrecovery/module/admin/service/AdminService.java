@@ -1,6 +1,8 @@
 package com.petrecovery.module.admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.petrecovery.common.constant.UserRole;
 import com.petrecovery.module.archive.entity.StrayAnimalArchive;
 import com.petrecovery.module.archive.mapper.ArchiveMapper;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -39,13 +43,29 @@ public class AdminService {
 
     public void reviewPost(Long postId, String action, String reason) {
         PetSearchPost post = postMapper.selectById(postId);
-        if (post != null) {
-            post.setStatus("APPROVED".equals(action) ? "ACTIVE" : "REJECTED");
-            if ("REJECTED".equals(action)) {
-                post.setRejectReason(reason);
-            }
-            postMapper.updateById(post);
+        if (post == null) {
+            throw new RuntimeException("寻宠启事不存在");
         }
+        if (!"PENDING".equals(post.getStatus())) {
+            throw new RuntimeException("该寻宠启事已处理，不能重复审核");
+        }
+        if (!"APPROVED".equals(action) && !"REJECTED".equals(action)) {
+            throw new IllegalArgumentException("无效的审核操作");
+        }
+        post.setStatus("APPROVED".equals(action) ? "ACTIVE" : "REJECTED");
+        if ("REJECTED".equals(action)) {
+            post.setRejectReason(reason);
+        } else {
+            post.setRejectReason(null);
+        }
+        postMapper.updateById(post);
+    }
+
+    public IPage<PetSearchPost> getPendingPosts(long page, long size) {
+        return postMapper.selectPage(new Page<>(page, size),
+                new LambdaQueryWrapper<PetSearchPost>()
+                        .eq(PetSearchPost::getStatus, "PENDING")
+                        .orderByDesc(PetSearchPost::getCreateTime));
     }
 
     public void reviewArchive(Long archiveId, String action, String reason) {
@@ -117,7 +137,19 @@ public class AdminService {
 
     public void exportArchiveExcel(String startDate, String endDate, String region,
                                    HttpServletResponse response) {
-        List<StrayAnimalArchive> list = archiveMapper.selectList(null);
+        LambdaQueryWrapper<StrayAnimalArchive> wrapper = new LambdaQueryWrapper<StrayAnimalArchive>()
+                .eq(StrayAnimalArchive::getStatus, "APPROVED")
+                .orderByDesc(StrayAnimalArchive::getCreateTime);
+        if (startDate != null && !startDate.isBlank()) {
+            wrapper.ge(StrayAnimalArchive::getCreateTime, parseStartDate(startDate));
+        }
+        if (endDate != null && !endDate.isBlank()) {
+            wrapper.le(StrayAnimalArchive::getCreateTime, parseEndDate(endDate));
+        }
+        if (region != null && !region.isBlank()) {
+            wrapper.like(StrayAnimalArchive::getAddress, region);
+        }
+        List<StrayAnimalArchive> list = archiveMapper.selectList(wrapper);
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("流浪动物登记台账");
             Row header = sheet.createRow(0);
@@ -174,5 +206,13 @@ public class AdminService {
                 "attachment;filename=" + URLEncoder.encode(filename, StandardCharsets.UTF_8));
         workbook.write(response.getOutputStream());
         response.getOutputStream().flush();
+    }
+
+    private LocalDateTime parseStartDate(String value) {
+        return LocalDate.parse(value.trim()).atStartOfDay();
+    }
+
+    private LocalDateTime parseEndDate(String value) {
+        return LocalDate.parse(value.trim()).plusDays(1).atStartOfDay().minusNanos(1);
     }
 }

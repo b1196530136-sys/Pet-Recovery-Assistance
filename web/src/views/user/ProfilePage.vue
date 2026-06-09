@@ -40,6 +40,7 @@
           ref="certUploadRef"
           action="/api/upload/image"
           accept="image/*"
+          :headers="uploadHeaders"
           :auto-upload="true"
           :on-success="onCertUploadSuccess"
           :on-error="() => ElMessage.error('上传失败')"
@@ -189,6 +190,9 @@ const avatarLoading = ref(false)
 const certUploading = ref(false)
 const incomingRequests = ref([])
 const myRequests = ref([])
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`
+}))
 
 const adoptStatusMap = { PENDING: '待处理', APPROVED: '已通过', REJECTED: '已拒绝' }
 function adoptStatusTagType(status) {

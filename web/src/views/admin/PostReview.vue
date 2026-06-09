@@ -42,13 +42,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { postApi } from '@/api/post'
+import { ElMessage } from 'element-plus'
 import { adminApi } from '@/api/admin'
 
 const list = ref([])
 
 async function load() {
-  const res = await postApi.search({ status: 'PENDING', page: 1, size: 100 })
+  const res = await adminApi.pendingPosts({ page: 1, size: 100 })
   list.value = res.data.records
 }
 

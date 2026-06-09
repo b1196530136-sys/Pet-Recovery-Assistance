@@ -24,6 +24,14 @@ public class AdminController {
     }
 
     // ===== 寻宠启事审核 =====
+    @GetMapping("/post/pending")
+    public Result<?> pendingPosts(@RequestParam(defaultValue = "1") long page,
+                                  @RequestParam(defaultValue = "100") long size,
+                                  HttpServletRequest request) {
+        checkAdmin(request);
+        return Result.success(adminService.getPendingPosts(page, size));
+    }
+
     @PostMapping("/post/review/{postId}")
     public Result<?> reviewPost(@PathVariable Long postId, @RequestParam String action,
                                 @RequestParam(required = false) String reason,

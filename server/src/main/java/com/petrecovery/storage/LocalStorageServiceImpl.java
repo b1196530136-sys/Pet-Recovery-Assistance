@@ -31,11 +31,9 @@ public class LocalStorageServiceImpl implements UploadStorageService {
     }
 
     @Override
-    public String upload(MultipartFile file) {
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+    public String upload(MultipartFile file, String extension) {
+        if (extension == null || !extension.startsWith(".")) {
+            throw new IllegalArgumentException("Invalid file extension");
         }
         String newFilename = UUID.randomUUID().toString().replace("-", "") + extension;
         Path targetPath = Paths.get(storagePath, newFilename);

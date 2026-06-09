@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.petrecovery.module.message.entity.SysImMessage;
 import com.petrecovery.module.message.mapper.MessageMapper;
 import com.petrecovery.module.message.websocket.ChatWebSocketHandler;
+import com.petrecovery.module.post.entity.PetSearchPost;
+import com.petrecovery.module.post.mapper.PostMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,13 +17,29 @@ import java.util.stream.Collectors;
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, SysImMessage> implements MessageService {
 
     private final ChatWebSocketHandler chatWebSocketHandler;
+    private final PostMapper postMapper;
 
-    public MessageServiceImpl(ChatWebSocketHandler chatWebSocketHandler) {
+    public MessageServiceImpl(ChatWebSocketHandler chatWebSocketHandler, PostMapper postMapper) {
         this.chatWebSocketHandler = chatWebSocketHandler;
+        this.postMapper = postMapper;
     }
 
     @Override
     public SysImMessage sendClueMessage(SysImMessage message) {
+        if (message.getPostId() == null) {
+            throw new RuntimeException("线索必须关联寻宠启事");
+        }
+        PetSearchPost post = postMapper.selectById(message.getPostId());
+        if (post == null) {
+            throw new RuntimeException("寻宠启事不存在");
+        }
+        if (!"ACTIVE".equals(post.getStatus())) {
+            throw new RuntimeException("只能对寻找中的启事提交线索");
+        }
+        if (post.getUserId().equals(message.getSenderId())) {
+            throw new RuntimeException("不能给自己的寻宠启事提交线索");
+        }
+        message.setReceiverId(post.getUserId());
         message.setReadStatus(0);
         message.setMsgType(1);
         save(message);
@@ -32,6 +50,12 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, SysImMessage>
 
     @Override
     public SysImMessage sendNormalMessage(SysImMessage message) {
+        if (message.getReceiverId() == null) {
+            throw new RuntimeException("接收人不能为空");
+        }
+        if (message.getReceiverId().equals(message.getSenderId())) {
+            throw new RuntimeException("不能给自己发送消息");
+        }
         message.setReadStatus(0);
         message.setMsgType(0);
         save(message);

@@ -2,6 +2,9 @@ import request from '@/utils/request'
 
 export const adminApi = {
   // 寻宠启事审核
+  pendingPosts(params) {
+    return request.get('/admin/post/pending', { params })
+  },
   reviewPost(postId, action, reason) {
     return request.post(`/admin/post/review/${postId}`, null, { params: { action, reason } })
   },

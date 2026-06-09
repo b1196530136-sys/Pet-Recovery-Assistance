@@ -8,7 +8,7 @@ public interface UserService extends IService<SysUser> {
 
     SysUser register(SysUser user);
 
-    SysUser loginByCode(String email, String code);
+    SysUser loginByCode(String email);
 
     boolean applyCertification(Long userId, String credentials);
 

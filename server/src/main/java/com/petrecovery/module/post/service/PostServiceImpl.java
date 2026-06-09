@@ -49,11 +49,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> impl
         if (request.getProvince() != null && !request.getProvince().isEmpty()) {
             wrapper.like(PetSearchPost::getAddress, request.getProvince());
         }
-        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
-            wrapper.eq(PetSearchPost::getStatus, request.getStatus());
-        } else {
-            wrapper.in(PetSearchPost::getStatus, "ACTIVE", "RESOLVED");
-        }
+        wrapper.in(PetSearchPost::getStatus, "ACTIVE", "RESOLVED");
         wrapper.orderByDesc(PetSearchPost::getCreateTime);
         return page(new Page<>(request.getPage(), request.getSize()), wrapper);
     }
@@ -75,7 +71,15 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> impl
     }
 
     @Override
-    public List<Map<String, Object>> getClueTrail(Long postId) {
+    public List<Map<String, Object>> getClueTrail(Long postId, Long viewerId, String viewerRole) {
+        PetSearchPost post = getById(postId);
+        if (post == null) {
+            throw new RuntimeException("寻宠启事不存在");
+        }
+        boolean privileged = post.getUserId().equals(viewerId) || "ADMIN".equals(viewerRole);
+        if (!privileged) {
+            throw new SecurityException("无权查看线索轨迹");
+        }
         List<SysImMessage> clues = messageMapper.selectList(
                 new LambdaQueryWrapper<SysImMessage>()
                         .eq(SysImMessage::getPostId, postId)

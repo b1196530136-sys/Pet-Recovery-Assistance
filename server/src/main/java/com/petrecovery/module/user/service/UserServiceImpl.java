@@ -70,7 +70,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
     }
 
     @Override
-    public SysUser loginByCode(String email, String code) {
+    public SysUser loginByCode(String email) {
         SysUser user = getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getEmail, email));
         if (user == null) {
             user = new SysUser();
@@ -79,6 +79,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
             user.setRole(UserRole.ROLE_USER);
             user.setStatus(1);
             save(user);
+        }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            throw new RuntimeException("账号已被封禁");
         }
         return user;
     }

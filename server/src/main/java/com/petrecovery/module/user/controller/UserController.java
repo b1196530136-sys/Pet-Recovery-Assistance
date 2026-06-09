@@ -48,7 +48,7 @@ public class UserController {
             String token = jwtConfig.generateToken(user.getId(), user.getRole());
             Map<String, Object> data = new HashMap<>();
             data.put("token", token);
-            data.put("user", toSafeMap(user));
+            data.put("user", toPrivateMap(user));
             return Result.success(data);
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
@@ -57,19 +57,27 @@ public class UserController {
 
     @PostMapping("/login/code")
     public Result<?> loginByCode(@RequestBody LoginRequest request) {
-        SysUser user = userService.loginByCode(request.getEmail(), request.getCode());
-        String token = jwtConfig.generateToken(user.getId(), user.getRole());
-        Map<String, Object> data = new HashMap<>();
-        data.put("token", token);
-        data.put("user", toSafeMap(user));
-        return Result.success(data);
+        if (request.getEmail() == null || request.getCode() == null
+                || !verifyCodeService.verifyCode(request.getEmail(), request.getCode())) {
+            return Result.error("验证码错误或已过期");
+        }
+        try {
+            SysUser user = userService.loginByCode(request.getEmail());
+            String token = jwtConfig.generateToken(user.getId(), user.getRole());
+            Map<String, Object> data = new HashMap<>();
+            data.put("token", token);
+            data.put("user", toPrivateMap(user));
+            return Result.success(data);
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
     }
 
     @GetMapping("/profile")
     public Result<?> profile(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         SysUser user = userService.getById(userId);
-        return Result.success(toSafeMap(user));
+        return Result.success(toPrivateMap(user));
     }
 
     @GetMapping("/info/{id}")
@@ -78,7 +86,7 @@ public class UserController {
         if (user == null) {
             return Result.error("用户不存在");
         }
-        return Result.success(toSafeMap(user));
+        return Result.success(toPublicMap(user));
     }
 
     @PostMapping("/reset-password")
@@ -110,17 +118,22 @@ public class UserController {
         return Result.success();
     }
 
-    private Map<String, Object> toSafeMap(SysUser user) {
+    private Map<String, Object> toPublicMap(SysUser user) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", user.getId());
-        map.put("email", user.getEmail());
         map.put("nickname", user.getNickname());
         map.put("avatar", user.getAvatar());
-        map.put("phone", user.getPhone());
         map.put("role", user.getRole());
+        map.put("createTime", user.getCreateTime());
+        return map;
+    }
+
+    private Map<String, Object> toPrivateMap(SysUser user) {
+        Map<String, Object> map = toPublicMap(user);
+        map.put("email", user.getEmail());
+        map.put("phone", user.getPhone());
         map.put("certCredentials", user.getCertCredentials());
         map.put("status", user.getStatus());
-        map.put("createTime", user.getCreateTime());
         return map;
     }
 }

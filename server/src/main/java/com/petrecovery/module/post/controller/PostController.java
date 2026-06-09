@@ -1,11 +1,13 @@
 package com.petrecovery.module.post.controller;
 
 import com.petrecovery.common.Result;
+import com.petrecovery.config.JwtConfig;
 import com.petrecovery.module.post.dto.PostSearchRequest;
 import com.petrecovery.module.post.entity.PetSearchPost;
 import com.petrecovery.module.post.service.PostService;
 import com.petrecovery.module.user.entity.SysUser;
 import com.petrecovery.module.user.mapper.UserMapper;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +26,12 @@ public class PostController {
 
     private final PostService postService;
     private final UserMapper userMapper;
+    private final JwtConfig jwtConfig;
 
-    public PostController(PostService postService, UserMapper userMapper) {
+    public PostController(PostService postService, UserMapper userMapper, JwtConfig jwtConfig) {
         this.postService = postService;
         this.userMapper = userMapper;
+        this.jwtConfig = jwtConfig;
     }
 
     @PostMapping("/create")
@@ -124,10 +128,15 @@ public class PostController {
     }
 
     @GetMapping("/detail/{id}")
-    public Result<?> detail(@PathVariable Long id) {
+    public Result<?> detail(@PathVariable Long id, HttpServletRequest request) {
         PetSearchPost post = postService.getById(id);
         Map<String, Object> result = new HashMap<>();
         if (post == null) return Result.error("寻宠启事不存在");
+        RequestUser viewer = resolveViewer(request);
+        boolean privileged = isOwner(post, viewer) || isAdmin(viewer);
+        if (!("ACTIVE".equals(post.getStatus()) || "RESOLVED".equals(post.getStatus())) && !privileged) {
+            return Result.error(403, "无权查看此寻宠启事");
+        }
         result.put("id", post.getId());
         result.put("userId", post.getUserId());
         result.put("petType", post.getPetType());
@@ -142,6 +151,9 @@ public class PostController {
         result.put("description", post.getDescription());
         result.put("status", post.getStatus());
         result.put("createTime", post.getCreateTime());
+        if (privileged) {
+            result.put("rejectReason", post.getRejectReason());
+        }
         SysUser user = userMapper.selectById(post.getUserId());
         result.put("publisherName", user != null ? user.getNickname() : "未知用户");
         result.put("publisherAvatar", user != null ? user.getAvatar() : null);
@@ -156,8 +168,10 @@ public class PostController {
     }
 
     @GetMapping("/clue-trail/{postId}")
-    public Result<?> clueTrail(@PathVariable Long postId) {
-        return Result.success(postService.getClueTrail(postId));
+    public Result<?> clueTrail(@PathVariable Long postId, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        String role = (String) request.getAttribute("role");
+        return Result.success(postService.getClueTrail(postId, userId, role));
     }
 
     @GetMapping("/my")
@@ -189,4 +203,31 @@ public class PostController {
         postService.computeHashForExisting();
         return Result.success();
     }
+
+    private boolean isOwner(PetSearchPost post, RequestUser viewer) {
+        return viewer.userId != null && post.getUserId() != null && post.getUserId().equals(viewer.userId);
+    }
+
+    private boolean isAdmin(RequestUser viewer) {
+        return "ADMIN".equals(viewer.role);
+    }
+
+    private RequestUser resolveViewer(HttpServletRequest request) {
+        Object userId = request.getAttribute("userId");
+        Object role = request.getAttribute("role");
+        if (userId instanceof Long id) {
+            return new RequestUser(id, role instanceof String r ? r : null);
+        }
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            try {
+                Claims claims = jwtConfig.parseToken(token.substring(7));
+                return new RequestUser(Long.parseLong(claims.getSubject()), claims.get("role", String.class));
+            } catch (Exception ignored) {
+            }
+        }
+        return new RequestUser(null, null);
+    }
+
+    private record RequestUser(Long userId, String role) {}
 }

@@ -11,7 +11,7 @@ public interface UploadStorageService {
     /**
      * 上传文件并返回可访问路径
      */
-    String upload(MultipartFile file);
+    String upload(MultipartFile file, String extension);
 
     /**
      * 删除文件

@@ -22,5 +22,5 @@ public interface PostService extends IService<PetSearchPost> {
      */
     List<Map<String, Object>> searchByImageUrl(String imageUrl);
     void computeHashForExisting();
-    List<Map<String, Object>> getClueTrail(Long postId);
+    List<Map<String, Object>> getClueTrail(Long postId, Long viewerId, String viewerRole);
 }

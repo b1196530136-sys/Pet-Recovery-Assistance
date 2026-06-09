@@ -1,6 +1,7 @@
 package com.petrecovery.module.adoption.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.petrecovery.module.adoption.entity.AdoptionRequest;
 import com.petrecovery.module.adoption.mapper.AdoptionRequestMapper;
@@ -34,11 +35,18 @@ public class AdoptionServiceImpl extends ServiceImpl<AdoptionRequestMapper, Adop
         if (archive == null) {
             throw new RuntimeException("档案不存在");
         }
-        if (!"adoptable".equals(archive.getPlacementStatus())) {
+        if (!"APPROVED".equals(archive.getStatus()) || !"adoptable".equals(archive.getPlacementStatus())) {
             throw new RuntimeException("该档案暂未开放领养");
         }
         if (archive.getUserId().equals(applicantId)) {
             throw new RuntimeException("不能申请领养自己的档案");
+        }
+        long pendingCount = count(new LambdaQueryWrapper<AdoptionRequest>()
+                .eq(AdoptionRequest::getArchiveId, archiveId)
+                .eq(AdoptionRequest::getApplicantId, applicantId)
+                .eq(AdoptionRequest::getStatus, "PENDING"));
+        if (pendingCount > 0) {
+            throw new RuntimeException("您已提交过该档案的领养申请，请等待处理");
         }
 
         AdoptionRequest request = new AdoptionRequest();
@@ -178,8 +186,16 @@ public class AdoptionServiceImpl extends ServiceImpl<AdoptionRequestMapper, Adop
         StrayAnimalArchive archive = archiveMapper.selectById(request.getArchiveId());
         String animalType = archive != null ? archive.getAnimalType() : "";
         if ("APPROVED".equals(action) && archive != null) {
+            if (!"adoptable".equals(archive.getPlacementStatus())) {
+                throw new RuntimeException("该档案当前不可领养");
+            }
             archive.setPlacementStatus("adopted");
             archiveMapper.updateById(archive);
+            update(new LambdaUpdateWrapper<AdoptionRequest>()
+                    .eq(AdoptionRequest::getArchiveId, request.getArchiveId())
+                    .eq(AdoptionRequest::getStatus, "PENDING")
+                    .ne(AdoptionRequest::getId, request.getId())
+                    .set(AdoptionRequest::getStatus, "REJECTED"));
         }
 
         // 向申请人发送结果通知

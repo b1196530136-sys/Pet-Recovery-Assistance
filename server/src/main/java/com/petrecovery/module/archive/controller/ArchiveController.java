@@ -2,11 +2,13 @@ package com.petrecovery.module.archive.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.petrecovery.config.JwtConfig;
 import com.petrecovery.common.Result;
 import com.petrecovery.module.archive.entity.StrayAnimalArchive;
 import com.petrecovery.module.archive.service.ArchiveService;
 import com.petrecovery.module.user.entity.SysUser;
 import com.petrecovery.module.user.mapper.UserMapper;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,10 +21,12 @@ public class ArchiveController {
 
     private final ArchiveService archiveService;
     private final UserMapper userMapper;
+    private final JwtConfig jwtConfig;
 
-    public ArchiveController(ArchiveService archiveService, UserMapper userMapper) {
+    public ArchiveController(ArchiveService archiveService, UserMapper userMapper, JwtConfig jwtConfig) {
         this.archiveService = archiveService;
         this.userMapper = userMapper;
+        this.jwtConfig = jwtConfig;
     }
 
     @PostMapping("/create")
@@ -45,17 +49,23 @@ public class ArchiveController {
     }
 
     @GetMapping("/detail/{id}")
-    public Result<?> detail(@PathVariable Long id) {
+    public Result<?> detail(@PathVariable Long id, HttpServletRequest request) {
         StrayAnimalArchive archive = archiveService.getById(id);
+        if (archive == null) return Result.error("档案不存在");
+        RequestUser viewer = resolveViewer(request);
+        boolean privileged = isOwner(archive, viewer) || isAdmin(viewer);
+        if (!"APPROVED".equals(archive.getStatus()) && !privileged) {
+            return Result.error(403, "无权查看此档案");
+        }
         Map<String, Object> result = new HashMap<>();
-        result.putAll(archive == null ? Map.of() : convertToMap(archive));
-        if (archive != null && archive.getUserId() != null) {
+        result.putAll(convertToMap(archive));
+        if (archive.getUserId() != null) {
             SysUser user = userMapper.selectById(archive.getUserId());
             result.put("publisherName", user != null ? user.getNickname() : "未知用户");
             result.put("publisherAvatar", user != null ? user.getAvatar() : null);
             result.put("publisherId", archive.getUserId());
         }
-        if (archive != null) {
+        if (privileged) {
             result.put("pendingData", archive.getPendingData());
             result.put("isUpdate", archive.getPendingData() != null && !archive.getPendingData().isBlank());
             result.put("rejectReason", archive.getRejectReason());
@@ -100,7 +110,9 @@ public class ArchiveController {
 
     @GetMapping("/pending")
     public Result<?> pending(@RequestParam(defaultValue = "1") int page,
-                             @RequestParam(defaultValue = "100") int size) {
+                             @RequestParam(defaultValue = "100") int size,
+                             HttpServletRequest request) {
+        checkAdmin(request);
         // 待审列表：新建(PENDING状态) + 修改(有pendingData但状态为APPROVED)
         LambdaQueryWrapper<StrayAnimalArchive> wrapper = new LambdaQueryWrapper<StrayAnimalArchive>()
                 .and(w -> w.eq(StrayAnimalArchive::getStatus, "PENDING")
@@ -121,4 +133,38 @@ public class ArchiveController {
         result.put("current", pageResult.getCurrent());
         return Result.success(result);
     }
+
+    private void checkAdmin(HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"ADMIN".equals(role)) {
+            throw new SecurityException("无管理员权限");
+        }
+    }
+
+    private boolean isOwner(StrayAnimalArchive archive, RequestUser viewer) {
+        return viewer.userId != null && archive.getUserId() != null && archive.getUserId().equals(viewer.userId);
+    }
+
+    private boolean isAdmin(RequestUser viewer) {
+        return "ADMIN".equals(viewer.role);
+    }
+
+    private RequestUser resolveViewer(HttpServletRequest request) {
+        Object userId = request.getAttribute("userId");
+        Object role = request.getAttribute("role");
+        if (userId instanceof Long id) {
+            return new RequestUser(id, role instanceof String r ? r : null);
+        }
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            try {
+                Claims claims = jwtConfig.parseToken(token.substring(7));
+                return new RequestUser(Long.parseLong(claims.getSubject()), claims.get("role", String.class));
+            } catch (Exception ignored) {
+            }
+        }
+        return new RequestUser(null, null);
+    }
+
+    private record RequestUser(Long userId, String role) {}
 }

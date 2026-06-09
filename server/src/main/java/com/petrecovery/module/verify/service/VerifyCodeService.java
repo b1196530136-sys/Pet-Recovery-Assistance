@@ -6,22 +6,31 @@ import com.petrecovery.module.verify.entity.VerifyCode;
 import com.petrecovery.module.verify.mapper.VerifyCodeMapper;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class VerifyCodeService extends ServiceImpl<VerifyCodeMapper, VerifyCode> {
 
     private final JavaMailSender mailSender;
     private final Random random = new Random();
+    private final Map<String, RateLimitState> rateLimits = new ConcurrentHashMap<>();
+
+    @Value("${verify-code.debug-return:false}")
+    private boolean debugReturnCode;
 
     public VerifyCodeService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-    public String sendCode(String email) {
+    public String sendCode(String email, String clientIp) {
+        checkRateLimit(email, clientIp);
+
         // 1分钟内不能重复发送
         VerifyCode last = getOne(new LambdaQueryWrapper<VerifyCode>()
                 .eq(VerifyCode::getEmail, email)
@@ -63,8 +72,30 @@ public class VerifyCodeService extends ServiceImpl<VerifyCodeMapper, VerifyCode>
         if (mailSent) {
             return null;
         } else {
-            return code;
+            return debugReturnCode ? code : null;
         }
+    }
+
+    private void checkRateLimit(String email, String clientIp) {
+        String normalizedIp = clientIp == null || clientIp.isBlank() ? "unknown" : clientIp;
+        String key = normalizedIp + ":" + email.toLowerCase();
+        RateLimitState state = rateLimits.computeIfAbsent(key, k -> new RateLimitState());
+        LocalDateTime now = LocalDateTime.now();
+        synchronized (state) {
+            if (state.windowStart == null || state.windowStart.plusHours(1).isBefore(now)) {
+                state.windowStart = now;
+                state.count = 0;
+            }
+            if (state.count >= 5) {
+                throw new RuntimeException("验证码请求过于频繁，请稍后再试");
+            }
+            state.count++;
+        }
+    }
+
+    private static class RateLimitState {
+        private LocalDateTime windowStart;
+        private int count;
     }
 
     public boolean verifyCode(String email, String code) {
