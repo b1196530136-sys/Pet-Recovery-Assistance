@@ -1,9 +1,17 @@
 <template>
   <div class="post-list-page">
-    <h2 style="margin-bottom: 20px">寻宠大厅</h2>
+    <div class="page-heading list-heading">
+      <div>
+        <h2 class="page-title">寻宠大厅</h2>
+        <p class="page-lead">按类型、地区或照片快速查找走失宠物线索。</p>
+      </div>
+      <router-link to="/posts/create">
+        <el-button type="primary" size="large" class="primary-cta">我要寻宠</el-button>
+      </router-link>
+    </div>
 
     <!-- 搜索筛选 -->
-    <el-card class="search-bar" style="margin-bottom: 20px">
+    <el-card class="search-bar">
       <el-form :model="filters" inline>
         <el-form-item label="宠物类型">
           <el-select v-model="filters.petType" placeholder="全部" clearable style="width: 120px">
@@ -17,21 +25,15 @@
           <el-input v-model="filters.province" placeholder="省/市" style="width: 150px" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="search">搜索</el-button>
-          <el-button type="warning" @click="showImageSearch = true">以图搜宠</el-button>
-        </el-form-item>
-        <div style="flex: 1" />
-        <el-form-item>
-          <router-link to="/posts/create">
-            <el-button type="primary" size="large" style="padding: 10px 30px; font-size: 16px">我要寻宠</el-button>
-          </router-link>
+          <el-button type="primary" class="search-action" @click="search">搜索</el-button>
+          <el-button type="warning" class="image-action" @click="showImageSearch = true">以图搜宠</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <!-- 列表 -->
-    <el-row :gutter="16">
-      <el-col v-for="post in posts" :key="post.id" :span="8" style="margin-bottom: 16px">
+    <el-row :gutter="18" class="post-grid">
+      <el-col v-for="post in posts" :key="post.id" :xs="24" :sm="12" :md="8" style="margin-bottom: 18px">
         <el-card class="post-card" @click="$router.push(`/posts/${post.id}`)" style="cursor: pointer">
           <div class="post-status" :class="post.status">{{ statusMap[post.status] }}</div>
           <div v-if="post.similarity" class="post-similarity">{{ post.similarity }}%</div>
@@ -44,19 +46,21 @@
               preview-teleported
             />
           </div>
-          <div v-else class="post-photo-placeholder">暂无照片</div>
-          <h3>{{ post.petName || ' unnamed' }} ({{ typeMap[post.petType] }})</h3>
-          <p style="font-size: 13px; color: #909399; margin-top: 8px">
+          <div v-else class="post-photo-placeholder">
+            <span>暂无照片</span>
+          </div>
+          <h3 class="post-title line-clamp-1">{{ post.petName || '未命名' }} ({{ typeMap[post.petType] || post.petType || '未知' }})</h3>
+          <p class="post-meta line-clamp-2">
             {{ post.address }} · {{ formatDate(post.lostTime) }}
           </p>
-          <p style="font-size: 13px; color: #606266; margin-top: 4px">
+          <p class="post-desc line-clamp-2">
             {{ post.description?.slice(0, 60) }}...
           </p>
         </el-card>
       </el-col>
     </el-row>
 
-    <el-empty v-if="!posts.length" description="暂无寻宠启事" />
+    <el-empty v-if="!posts.length" description="暂时没有匹配的寻宠启事，换个条件或发布新的求助吧" />
 
     <div class="pagination" style="margin-top: 20px; text-align: center">
       <el-pagination
@@ -93,7 +97,7 @@
           <div v-for="item in imageSearchResult" :key="item.id" class="image-search-item" @click="$router.push(`/posts/${item.id}`)">
             <el-image v-if="item.photos" :src="item.photos.split(',')[0]" style="width: 80px; height: 80px; border-radius: 6px; flex-shrink: 0;" fit="cover" />
             <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 500;">{{ item.petName || 'unnamed' }} ({{ typeMap[item.petType] }})</div>
+              <div style="font-weight: 500;">{{ item.petName || '未命名' }} ({{ typeMap[item.petType] || item.petType || '未知' }})</div>
               <div style="font-size: 12px; color: #909399; margin-top: 4px;">{{ item.address }}</div>
               <div v-if="item.recognitionDesc" style="font-size: 11px; color: #e6a23c; margin-top: 2px;">{{ item.recognitionDesc }}</div>
             </div>
@@ -203,10 +207,24 @@ onMounted(search)
 </script>
 
 <style scoped>
-.post-card { position: relative; }
+.page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+.list-heading { padding: 4px 0 2px; }
+.primary-cta { min-width: 132px; }
+.search-bar { margin-bottom: 22px; border-left: 4px solid var(--color-primary); }
+.search-bar :deep(.el-form-item__label) { font-weight: 700; color: #475467; }
+.search-action,
+.image-action { min-width: 92px; }
+.post-card { position: relative; height: 100%; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.post-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.post-card :deep(.el-card__body) { padding: 18px; }
 .post-photo { margin-bottom: 10px; }
-.post-photo-placeholder { height: 160px; border-radius: 4px; background: #f5f7fa; display: flex; align-items: center; justify-content: center; color: #c0c4cc; font-size: 13px; margin-bottom: 10px; }
-.post-status { position: absolute; top: 12px; right: 12px; padding: 2px 8px; border-radius: 4px; font-size: 12px; z-index: 1; }
+.post-photo :deep(.el-image) { display: block; }
+.post-photo-placeholder { height: 160px; border-radius: 6px; background: linear-gradient(135deg, #eef7ff, #fff8ed); display: flex; align-items: center; justify-content: center; color: #98a2b3; font-size: 13px; margin-bottom: 10px; border: 1px dashed #d9e3ee; }
+.post-photo-placeholder span { padding: 7px 12px; border-radius: 999px; background: rgba(255,255,255,0.74); }
+.post-title { font-size: 18px; line-height: 1.4; color: var(--color-text); }
+.post-meta { font-size: 13px; color: var(--color-muted); margin-top: 8px; line-height: 1.6; min-height: 42px; }
+.post-desc { font-size: 13px; color: #606266; margin-top: 4px; line-height: 1.6; min-height: 40px; }
+.post-status { position: absolute; top: 14px; right: 14px; padding: 4px 9px; border-radius: 999px; font-size: 12px; z-index: 1; font-weight: 700; box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12); }
 .post-status.ACTIVE { background: #e6f7ff; color: #1890ff; }
 .post-status.RESOLVED { background: #f6ffed; color: #52c41a; }
 .post-status.REJECTED { background: #fff2f0; color: #ff4d4f; }
@@ -218,4 +236,13 @@ onMounted(search)
 .similarity-tag.sim-high { background: #f6ffed; color: #52c41a; }
 .similarity-tag.sim-mid { background: #fffbe6; color: #faad14; }
 .similarity-tag.sim-low { background: #fff7e6; color: #fa8c16; }
+
+@media (max-width: 768px) {
+  .page-heading { display: grid; gap: 12px; }
+  .primary-cta { width: 100%; }
+  .post-photo-placeholder,
+  .post-photo :deep(.el-image) { height: 210px !important; }
+  .post-meta,
+  .post-desc { min-height: 0; }
+}
 </style>

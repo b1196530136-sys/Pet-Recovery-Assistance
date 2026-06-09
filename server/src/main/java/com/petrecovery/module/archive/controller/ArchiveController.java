@@ -4,12 +4,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.petrecovery.config.JwtConfig;
 import com.petrecovery.common.Result;
+import com.petrecovery.common.constant.UserRole;
 import com.petrecovery.module.archive.entity.StrayAnimalArchive;
 import com.petrecovery.module.archive.service.ArchiveService;
 import com.petrecovery.module.user.entity.SysUser;
 import com.petrecovery.module.user.mapper.UserMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -30,9 +33,12 @@ public class ArchiveController {
     }
 
     @PostMapping("/create")
-    public Result<?> create(@RequestBody StrayAnimalArchive archive, HttpServletRequest request) {
+    public ResponseEntity<Result<?>> create(@RequestBody StrayAnimalArchive archive, HttpServletRequest request) {
+        if (!canCreateArchive(request)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Result.error(403, "权限不足，需要成为认证用户"));
+        }
         Long userId = (Long) request.getAttribute("userId");
-        return Result.success(archiveService.createArchive(archive, userId));
+        return ResponseEntity.ok(Result.success(archiveService.createArchive(archive, userId)));
     }
 
     @GetMapping("/search")
@@ -147,6 +153,11 @@ public class ArchiveController {
 
     private boolean isAdmin(RequestUser viewer) {
         return "ADMIN".equals(viewer.role);
+    }
+
+    private boolean canCreateArchive(HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        return UserRole.ROLE_CERTIFIED.equals(role) || UserRole.ROLE_ADMIN.equals(role);
     }
 
     private RequestUser resolveViewer(HttpServletRequest request) {

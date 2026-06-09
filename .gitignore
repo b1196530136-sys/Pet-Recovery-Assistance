@@ -23,6 +23,9 @@ build/
 #image
 *.png
 *.jpg
+!web/public/images/hero-rescue.jpg
+!web/public/images/archive-care.jpg
+!web/public/images/shelter-community.jpg
 
 #document
 *.docx

@@ -10,6 +10,8 @@ public interface UserService extends IService<SysUser> {
 
     SysUser loginByCode(String email);
 
+    boolean isEmailRegistered(String email);
+
     boolean applyCertification(Long userId, String credentials);
 
     void updateAvatar(Long userId, String avatar);

@@ -57,8 +57,13 @@ public class UserController {
 
     @PostMapping("/login/code")
     public Result<?> loginByCode(@RequestBody LoginRequest request) {
-        if (request.getEmail() == null || request.getCode() == null
-                || !verifyCodeService.verifyCode(request.getEmail(), request.getCode())) {
+        if (request.getEmail() == null || request.getCode() == null) {
+            return Result.error("参数不完整");
+        }
+        if (!userService.isEmailRegistered(request.getEmail())) {
+            return Result.error("邮箱未注册");
+        }
+        if (!verifyCodeService.verifyCode(request.getEmail(), request.getCode())) {
             return Result.error("验证码错误或已过期");
         }
         try {

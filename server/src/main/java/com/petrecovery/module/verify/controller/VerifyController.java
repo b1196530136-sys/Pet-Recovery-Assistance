@@ -1,6 +1,7 @@
 package com.petrecovery.module.verify.controller;
 
 import com.petrecovery.common.Result;
+import com.petrecovery.module.user.service.UserService;
 import com.petrecovery.module.verify.service.VerifyCodeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
@@ -12,17 +13,35 @@ import java.util.Map;
 public class VerifyController {
 
     private final VerifyCodeService verifyCodeService;
+    private final UserService userService;
 
-    public VerifyController(VerifyCodeService verifyCodeService) {
+    public VerifyController(VerifyCodeService verifyCodeService, UserService userService) {
         this.verifyCodeService = verifyCodeService;
+        this.userService = userService;
     }
 
     @PostMapping("/send-code")
     public Result<?> sendCode(@RequestBody Map<String, String> body, HttpServletRequest request) {
-        String email = body.get("email");
+        String email = normalizeEmail(body.get("email"));
         if (email == null || !email.matches("^\\S+@\\S+\\.\\S+$")) {
             return Result.error("邮箱格式不正确");
         }
+        return sendEmailCode(email, request);
+    }
+
+    @PostMapping("/send-login-code")
+    public Result<?> sendLoginCode(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        String email = normalizeEmail(body.get("email"));
+        if (email == null || !email.matches("^\\S+@\\S+\\.\\S+$")) {
+            return Result.error("邮箱格式不正确");
+        }
+        if (!userService.isEmailRegistered(email)) {
+            return Result.error("邮箱未注册");
+        }
+        return sendEmailCode(email, request);
+    }
+
+    private Result<?> sendEmailCode(String email, HttpServletRequest request) {
         try {
             String code = verifyCodeService.sendCode(email, getClientIp(request));
             if (code != null) {
@@ -33,6 +52,10 @@ public class VerifyController {
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
         }
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? null : email.trim();
     }
 
     private String getClientIp(HttpServletRequest request) {

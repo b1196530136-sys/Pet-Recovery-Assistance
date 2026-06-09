@@ -7,21 +7,36 @@ import com.petrecovery.module.message.mapper.MessageMapper;
 import com.petrecovery.module.message.websocket.ChatWebSocketHandler;
 import com.petrecovery.module.post.entity.PetSearchPost;
 import com.petrecovery.module.post.mapper.PostMapper;
+import com.petrecovery.module.user.entity.SysUser;
+import com.petrecovery.module.user.mapper.UserMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class MessageServiceImpl extends ServiceImpl<MessageMapper, SysImMessage> implements MessageService {
 
     private final ChatWebSocketHandler chatWebSocketHandler;
     private final PostMapper postMapper;
+    private final UserMapper userMapper;
+    private final JavaMailSender mailSender;
 
-    public MessageServiceImpl(ChatWebSocketHandler chatWebSocketHandler, PostMapper postMapper) {
+    @Value("${spring.mail.username:}")
+    private String mailFrom;
+
+    public MessageServiceImpl(ChatWebSocketHandler chatWebSocketHandler, PostMapper postMapper,
+                              UserMapper userMapper, JavaMailSender mailSender) {
         this.chatWebSocketHandler = chatWebSocketHandler;
         this.postMapper = postMapper;
+        this.userMapper = userMapper;
+        this.mailSender = mailSender;
     }
 
     @Override
@@ -45,7 +60,28 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, SysImMessage>
         save(message);
         // 尝试实时推送，用户离线则消息留存在库中待拉取
         chatWebSocketHandler.sendMessage(message.getReceiverId(), message);
+        sendClueNotificationEmail(post.getUserId());
         return message;
+    }
+
+    private void sendClueNotificationEmail(Long ownerId) {
+        SysUser owner = userMapper.selectById(ownerId);
+        if (owner == null || owner.getEmail() == null || owner.getEmail().isBlank()) {
+            log.warn("Skip clue notification email, owner email is empty. ownerId={}", ownerId);
+            return;
+        }
+        try {
+            SimpleMailMessage mailMessage = new SimpleMailMessage();
+            if (mailFrom != null && !mailFrom.isBlank()) {
+                mailMessage.setFrom(mailFrom);
+            }
+            mailMessage.setTo(owner.getEmail());
+            mailMessage.setSubject("寻宠互助平台 - 新线索提醒");
+            mailMessage.setText("有新的线索了！请及时查看。");
+            mailSender.send(mailMessage);
+        } catch (Exception e) {
+            log.error("Failed to send clue notification email. ownerId={}, email={}", ownerId, owner.getEmail(), e);
+        }
     }
 
     @Override

@@ -1,54 +1,69 @@
 <template>
-  <div class="post-detail-page" style="max-width: 900px; margin: 0 auto">
+  <div class="post-detail-page">
+    <el-button @click="$router.back()" :icon="ArrowLeft" class="back-btn">返回</el-button>
     <el-card v-if="post" class="detail-card">
-      <div class="post-header">
-        <el-button @click="$router.back()" :icon="ArrowLeft" style="margin-bottom: 12px">返回</el-button>
-        <div>
-          <h2>{{ post.petName || ' unnamed ' }}({{ typeMap[post.petType] }})</h2>
-          <el-tag :type="tagType(post.status)">{{ statusMap[post.status] }}</el-tag>
-        </div>
-        <div v-if="post.status === 'ACTIVE' && userStore.isLoggedIn && post.userId !== userId" style="margin-top: 16px">
-          <el-button type="warning" @click="showClueDialog = true">我有点线索</el-button>
-        </div>
-        <div v-if="post.userId === userId && post.status === 'ACTIVE'" style="margin-top: 8px">
-          <el-button type="success" @click="handleResolve">已找到宠物</el-button>
-        </div>
-      </div>
-
-      <div class="publisher-info" style="display: flex; align-items: center; gap: 10px; margin: 16px 0; padding: 10px 16px; background: #f5f7fa; border-radius: 8px;">
-        <el-avatar :size="36" :src="post.publisherAvatar || '/images/default-avatar.png'" />
-        <span style="font-size: 14px; color: #606266;">发布人：{{ post.publisherName || '未知用户' }}</span>
-      </div>
-
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="品种">{{ post.breed || '未知' }}</el-descriptions-item>
-        <el-descriptions-item label="丢失时间">{{ post.lostTime }}</el-descriptions-item>
-        <el-descriptions-item label="丢失地点" :span="2">{{ post.address }}</el-descriptions-item>
-        <el-descriptions-item label="酬金">{{ post.reward || '未说明' }}</el-descriptions-item>
-      </el-descriptions>
-
-      <div v-if="post.photos" style="margin-top: 20px">
-        <h4>宠物照片</h4>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px">
+      <section class="detail-summary">
+        <div class="detail-cover">
           <el-image
-            v-for="(url, idx) in post.photos.split(',')"
+            v-if="photoList.length"
+            :src="photoList[0]"
+            :preview-src-list="photoList"
+            fit="cover"
+            preview-teleported
+          />
+          <div v-else class="detail-cover-placeholder">暂无照片</div>
+        </div>
+        <div class="detail-main">
+          <el-tag :type="tagType(post.status)" size="large">{{ statusMap[post.status] }}</el-tag>
+          <h2>{{ post.petName || '未命名' }}（{{ typeMap[post.petType] || post.petType || '未知' }}）</h2>
+          <p class="detail-address">{{ post.address }}</p>
+          <div class="publisher-info">
+            <el-avatar :size="36" :src="post.publisherAvatar || '/images/default-avatar.png'" />
+            <span>发布人：{{ post.publisherName || '未知用户' }}</span>
+          </div>
+          <p class="action-hint">如果你近期见过相似宠物，可提交目击时间、地点和照片，线索会私信给失主。</p>
+          <div class="action-row">
+            <el-button v-if="post.status === 'ACTIVE' && userStore.isLoggedIn && post.userId !== userId" type="warning" size="large" @click="showClueDialog = true">我有线索</el-button>
+            <el-button v-if="post.userId === userId && post.status === 'ACTIVE'" type="success" size="large" @click="handleResolve">已找到宠物</el-button>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>关键信息</h3>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="品种">{{ post.breed || '未知' }}</el-descriptions-item>
+          <el-descriptions-item label="丢失时间">{{ post.lostTime }}</el-descriptions-item>
+          <el-descriptions-item label="丢失地点" :span="2">{{ post.address }}</el-descriptions-item>
+          <el-descriptions-item label="酬金">{{ post.reward || '未说明' }}</el-descriptions-item>
+        </el-descriptions>
+      </section>
+
+      <section v-if="photoList.length" class="detail-section">
+        <h3>宠物照片</h3>
+        <div class="photo-gallery">
+          <el-image
+            v-for="(url, idx) in photoList"
             :key="idx"
             :src="url"
-            :preview-src-list="post.photos.split(',')"
+            :preview-src-list="photoList"
             :initial-index="idx"
-            style="width: 160px; height: 160px; border-radius: 6px;"
             fit="cover"
             preview-teleported
           />
         </div>
-      </div>
+      </section>
 
-      <div style="margin-top: 20px">
-        <h4>特征描述</h4>
-        <p>{{ post.description }}</p>
-      </div>
+      <section class="detail-section">
+        <h3>特征描述</h3>
+        <p class="description-text">{{ post.description || '暂无描述' }}</p>
+      </section>
 
-      <div ref="mapContainer" style="width: 100%; height: 300px; margin-top: 20px"></div>
+      <section class="detail-section map-section">
+        <h3>丢失位置</h3>
+        <p class="page-lead">地图标注为发布人填写的丢失地点，可结合线索进一步核实。</p>
+        <div ref="mapContainer" class="detail-map"></div>
+      </section>
     </el-card>
 
     <el-dialog v-model="showClueDialog" title="提供线索" width="500px">
@@ -115,6 +130,10 @@ const cluePhotoUrls = ref([])
 const uploadHeaders = computed(() => ({
   Authorization: `Bearer ${userStore.token}`
 }))
+const photoList = computed(() => {
+  if (!post.value?.photos) return []
+  return post.value.photos.split(',').map(url => url.trim()).filter(Boolean)
+})
 
 const statusMap = { PENDING: '待审核', ACTIVE: '寻找中', REJECTED: '已驳回', RESOLVED: '已找到' }
 const typeMap = { cat: '猫', dog: '狗', other: '其他' }
@@ -243,3 +262,42 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.post-detail-page { max-width: 980px; margin: 0 auto; }
+.back-btn { margin-bottom: 14px; }
+.detail-card :deep(.el-card__body) { padding: 22px; }
+.detail-summary { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; gap: 24px; align-items: stretch; margin-bottom: 28px; padding: 16px; border-radius: 10px; background: linear-gradient(135deg, #f6fbff, #fffaf2); }
+.detail-cover,
+.detail-cover :deep(.el-image) { width: 100%; min-height: 260px; height: 100%; border-radius: 8px; overflow: hidden; background: #f5f7fa; }
+.detail-cover-placeholder { height: 100%; min-height: 260px; display: flex; align-items: center; justify-content: center; color: #98a2b3; }
+.detail-main { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; padding: 8px 0; }
+.detail-main h2 { font-size: 30px; line-height: 1.25; color: var(--color-text); }
+.detail-address { color: var(--color-muted); line-height: 1.7; }
+.publisher-info { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f7f9fc; border: 1px solid #edf1f5; border-radius: 8px; color: #606266; font-size: 14px; }
+.action-hint { color: #667085; font-size: 13px; line-height: 1.7; }
+.action-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.action-row :deep(.el-button--warning) { --el-button-bg-color: var(--color-warning); --el-button-border-color: var(--color-warning); --el-button-hover-bg-color: #d58b21; --el-button-hover-border-color: #d58b21; color: #fff; }
+.detail-section { margin-top: 24px; }
+.detail-section h3 { font-size: 18px; margin-bottom: 12px; color: var(--color-text); }
+.photo-gallery { display: flex; gap: 10px; flex-wrap: wrap; }
+.photo-gallery :deep(.el-image) { width: 150px; height: 150px; border-radius: 8px; overflow: hidden; }
+.description-text { color: #475467; line-height: 1.8; white-space: pre-wrap; }
+.detail-map { width: 100%; height: min(320px, 48vh); margin-top: 12px; border: 1px solid #edf1f5; border-radius: 8px; overflow: hidden; }
+
+@media (max-width: 768px) {
+  .detail-card :deep(.el-card__body) { padding: 16px; }
+  .detail-summary { grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px; }
+  .detail-cover,
+  .detail-cover :deep(.el-image) { min-height: 230px; height: 230px; }
+  .detail-main h2 { font-size: 24px; }
+  .action-row,
+  .action-row :deep(.el-button) { width: 100%; }
+  .photo-gallery :deep(.el-image) { width: calc(50% - 5px); height: 150px; }
+  .post-detail-page :deep(.el-descriptions__body .el-descriptions__table) { display: block; }
+  .post-detail-page :deep(.el-descriptions__body tbody),
+  .post-detail-page :deep(.el-descriptions__body tr),
+  .post-detail-page :deep(.el-descriptions__body th),
+  .post-detail-page :deep(.el-descriptions__body td) { display: block; width: 100% !important; }
+}
+</style>

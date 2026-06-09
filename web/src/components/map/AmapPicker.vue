@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="amap-picker">
     <div style="position: relative; margin-bottom: 8px;">
       <el-input
         v-model="searchText"
@@ -19,8 +19,8 @@
         </div>
       </div>
     </div>
-    <div ref="mapContainer" style="width: 100%; height: 400px;"></div>
-    <div v-if="address" style="margin-top: 8px; font-size: 13px; color: #606266;">
+    <div ref="mapContainer" class="amap-map"></div>
+    <div v-if="address" class="selected-address">
       已选位置: {{ address }} ({{ longitude }}, {{ latitude }})
     </div>
   </div>
@@ -155,5 +155,24 @@ function selectSearchResult(item) {
 .search-item span {
   display: block;
   margin-top: 2px;
+}
+.amap-map {
+  width: 100%;
+  height: min(400px, 48vh);
+  border: 1px solid #edf1f5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.selected-address {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .amap-map {
+    height: 340px;
+  }
 }
 </style>

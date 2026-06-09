@@ -64,108 +64,94 @@
       </el-dialog>
     </el-card>
 
-    <!-- 我的寻宠启事 -->
-    <el-card class="section-card">
-      <template #header>
-        <span>我发布的寻宠启事</span>
-      </template>
-      <el-table v-if="myPosts.length" :data="myPosts" stripe style="width: 100%">
-        <el-table-column prop="petName" label="宠物名" width="120" />
-        <el-table-column prop="petType" label="类型" width="80">
-          <template #default="{ row }">{{ typeMap[row.petType] || row.petType }}</template>
-        </el-table-column>
-        <el-table-column prop="address" label="地址" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)">{{ statusMap[row.status] }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="发布时间" width="170" />
-        <el-table-column label="操作" width="160">
-          <template #default="{ row }">
-            <el-button size="small" @click="$router.push(`/posts/${row.id}`)">查看</el-button>
-            <el-button v-if="row.status === 'RESOLVED' || row.status === 'REJECTED'" size="small" type="danger" @click="handleDeletePost(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-else description="暂无发布的寻宠启事" />
-    </el-card>
+    <el-tabs class="profile-tabs" type="border-card">
+      <el-tab-pane label="我发布的寻宠">
+        <el-table v-if="myPosts.length" :data="myPosts" stripe style="width: 100%">
+          <el-table-column prop="petName" label="宠物名" width="120" />
+          <el-table-column prop="petType" label="类型" width="80">
+            <template #default="{ row }">{{ typeMap[row.petType] || row.petType }}</template>
+          </el-table-column>
+          <el-table-column prop="address" label="地址" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="statusTagType(row.status)">{{ statusMap[row.status] }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="发布时间" width="170" />
+          <el-table-column label="操作" width="160">
+            <template #default="{ row }">
+              <el-button size="small" @click="$router.push(`/posts/${row.id}`)">查看</el-button>
+              <el-button v-if="row.status === 'RESOLVED' || row.status === 'REJECTED'" size="small" type="danger" @click="handleDeletePost(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-else description="暂无发布的寻宠启事" />
+      </el-tab-pane>
 
-    <!-- 提供过线索的寻宠 -->
-    <el-card class="section-card">
-      <template #header>
-        <span>提供过线索的寻宠启事</span>
-      </template>
-      <el-table v-if="cluedPosts.length" :data="cluedPosts" stripe style="width: 100%">
-        <el-table-column prop="petName" label="宠物名" width="120" />
-        <el-table-column prop="petType" label="类型" width="80">
-          <template #default="{ row }">{{ typeMap[row.petType] || row.petType }}</template>
-        </el-table-column>
-        <el-table-column prop="address" label="地址" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)">{{ statusMap[row.status] }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="发布时间" width="170" />
-        <el-table-column label="操作" width="160">
-          <template #default="{ row }">
-            <el-button size="small" @click="$router.push(`/posts/${row.id}`)">查看</el-button>
-            <el-button v-if="row.status === 'RESOLVED' || row.status === 'REJECTED'" size="small" type="danger" @click="handleDeleteCluedPost(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-else description="暂无提供过线索的寻宠启事" />
-    </el-card>
+      <el-tab-pane label="提供过线索">
+        <el-table v-if="cluedPosts.length" :data="cluedPosts" stripe style="width: 100%">
+          <el-table-column prop="petName" label="宠物名" width="120" />
+          <el-table-column prop="petType" label="类型" width="80">
+            <template #default="{ row }">{{ typeMap[row.petType] || row.petType }}</template>
+          </el-table-column>
+          <el-table-column prop="address" label="地址" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="statusTagType(row.status)">{{ statusMap[row.status] }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="发布时间" width="170" />
+          <el-table-column label="操作" width="160">
+            <template #default="{ row }">
+              <el-button size="small" @click="$router.push(`/posts/${row.id}`)">查看</el-button>
+              <el-button v-if="row.status === 'RESOLVED' || row.status === 'REJECTED'" size="small" type="danger" @click="handleDeleteCluedPost(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-else description="暂无提供过线索的寻宠启事" />
+      </el-tab-pane>
 
-    <!-- 收到的领养申请 -->
-    <el-card class="section-card">
-      <template #header>
-        <span>收到的领养申请</span>
-      </template>
-      <el-table v-if="incomingRequests.length" :data="incomingRequests" stripe style="width: 100%">
-        <el-table-column prop="animalType" label="档案类型" width="100">
-          <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
-        </el-table-column>
-        <el-table-column prop="applicantName" label="申请人" width="100" />
-        <el-table-column prop="message" label="留言" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="adoptStatusTagType(row.status)">{{ adoptStatusMap[row.status] }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="申请时间" width="170" />
-        <el-table-column label="操作" width="160" v-if="hasPendingIncoming">
-          <template #default="{ row }">
-            <el-button v-if="row.status === 'PENDING'" size="small" type="success" @click="handleReview(row, 'APPROVED')">接受</el-button>
-            <el-button v-if="row.status === 'PENDING'" size="small" type="danger" @click="handleReview(row, 'REJECTED')">拒绝</el-button>
-            <span v-else>-</span>
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-empty v-else description="暂无收到的领养申请" />
-    </el-card>
+      <el-tab-pane label="收到申请">
+        <el-table v-if="incomingRequests.length" :data="incomingRequests" stripe style="width: 100%">
+          <el-table-column prop="animalType" label="档案类型" width="100">
+            <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
+          </el-table-column>
+          <el-table-column prop="applicantName" label="申请人" width="100" />
+          <el-table-column prop="message" label="留言" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="adoptStatusTagType(row.status)">{{ adoptStatusMap[row.status] }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="申请时间" width="170" />
+          <el-table-column label="操作" width="160" v-if="hasPendingIncoming">
+            <template #default="{ row }">
+              <el-button v-if="row.status === 'PENDING'" size="small" type="success" @click="handleReview(row, 'APPROVED')">接受</el-button>
+              <el-button v-if="row.status === 'PENDING'" size="small" type="danger" @click="handleReview(row, 'REJECTED')">拒绝</el-button>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-else description="暂无收到的领养申请" />
+      </el-tab-pane>
 
-    <!-- 我的领养申请 -->
-    <el-card class="section-card">
-      <template #header>
-        <span>我的领养申请</span>
-      </template>
-      <el-table v-if="myRequests.length" :data="myRequests" stripe style="width: 100%">
-        <el-table-column prop="animalType" label="档案类型" width="100">
-          <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
-        </el-table-column>
-        <el-table-column prop="ownerName" label="发布人" width="100" />
-        <el-table-column prop="message" label="留言" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="adoptStatusTagType(row.status)">{{ adoptStatusMap[row.status] }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="申请时间" width="170" />
-      </el-table>
-      <el-empty v-else description="暂无领养申请" />
-    </el-card>
+      <el-tab-pane label="我的申请">
+        <el-table v-if="myRequests.length" :data="myRequests" stripe style="width: 100%">
+          <el-table-column prop="animalType" label="档案类型" width="100">
+            <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
+          </el-table-column>
+          <el-table-column prop="ownerName" label="发布人" width="100" />
+          <el-table-column prop="message" label="留言" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="adoptStatusTagType(row.status)">{{ adoptStatusMap[row.status] }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="申请时间" width="170" />
+        </el-table>
+        <el-empty v-else description="暂无领养申请" />
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -358,4 +344,19 @@ onMounted(loadData)
 .profile-email { font-size: 14px; color: #606266; }
 .cert-row { display: flex; align-items: center; justify-content: space-between; }
 .section-card { margin-bottom: 20px; }
+.profile-tabs { margin-bottom: 20px; overflow-x: auto; }
+.profile-tabs :deep(.el-tabs__content) { min-height: 260px; }
+.profile-tabs :deep(.el-empty) { padding: 36px 0; }
+.profile-tabs :deep(.el-empty__image) { width: 120px; }
+.profile-tabs :deep(.el-table) { min-width: 760px; }
+
+@media (max-width: 768px) {
+  .profile-page { max-width: none; }
+  .profile-header { align-items: flex-start; gap: 16px; }
+  .profile-avatar { width: 64px !important; height: 64px !important; }
+  .profile-name-row { flex-wrap: wrap; }
+  .cert-row { display: grid; gap: 10px; }
+  .profile-tabs :deep(.el-tabs__nav) { white-space: nowrap; }
+  .profile-tabs :deep(.el-tabs__content) { min-height: 220px; padding: 12px; }
+}
 </style>

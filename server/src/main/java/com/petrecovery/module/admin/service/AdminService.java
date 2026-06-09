@@ -125,6 +125,14 @@ public class AdminService {
 
     public Map<String, Object> getDashboardData() {
         Map<String, Object> data = new HashMap<>();
+        Long pendingPosts = postMapper.selectCount(new LambdaQueryWrapper<PetSearchPost>()
+                .eq(PetSearchPost::getStatus, "PENDING"));
+        Long pendingArchives = archiveMapper.selectCount(new LambdaQueryWrapper<StrayAnimalArchive>()
+                .and(w -> w.eq(StrayAnimalArchive::getStatus, "PENDING")
+                        .or()
+                        .isNotNull(StrayAnimalArchive::getPendingData)));
+        Long pendingCertifications = userMapper.selectCount(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getRole, UserRole.ROLE_PENDING_CERT));
         data.put("totalUsers", userMapper.selectCount(null));
         data.put("activePosts", postMapper.selectCount(new LambdaQueryWrapper<PetSearchPost>()
                 .eq(PetSearchPost::getStatus, "ACTIVE")));
@@ -132,6 +140,10 @@ public class AdminService {
                 .eq(PetSearchPost::getStatus, "RESOLVED")));
         data.put("totalArchives", archiveMapper.selectCount(new LambdaQueryWrapper<StrayAnimalArchive>()
                 .eq(StrayAnimalArchive::getStatus, "APPROVED")));
+        data.put("pendingPosts", pendingPosts);
+        data.put("pendingArchives", pendingArchives);
+        data.put("pendingCertifications", pendingCertifications);
+        data.put("pendingTotal", pendingPosts + pendingArchives + pendingCertifications);
         return data;
     }
 

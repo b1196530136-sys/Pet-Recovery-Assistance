@@ -1,73 +1,87 @@
 <template>
-  <div class="archive-create-page" style="max-width: 800px; margin: 0 auto">
+  <div class="archive-create-page form-page">
     <el-button :icon="ArrowLeft" @click="$router.back()" style="margin-bottom: 8px">返回</el-button>
-    <h2 style="margin-bottom: 20px">{{ isEdit ? '编辑流浪动物档案' : '登记流浪动物档案' }}</h2>
+    <h2 class="page-title">{{ isEdit ? '编辑流浪动物档案' : '登记流浪动物档案' }}</h2>
     <el-alert title="仅认证用户可以登记动物档案" type="warning" :closable="false" show-icon style="margin-bottom: 20px" />
-    <el-card>
+    <el-card class="form-card">
       <el-form :model="form" label-width="120px">
-        <el-form-item label="动物类型" required>
-          <el-radio-group v-model="form.animalType">
-            <el-radio value="cat">猫</el-radio>
-            <el-radio value="dog">狗</el-radio>
-            <el-radio value="other">其他</el-radio>
-          </el-radio-group>
-          <el-input v-if="form.animalType === 'other'" v-model="form.customAnimalType" placeholder="请填写具体类型" style="width: 200px; margin-top: 8px;" />
-        </el-form-item>
-        <el-form-item label="动物昵称">
-          <el-input v-model="form.name" placeholder="如有多只猫狗可区别称呼" />
-        </el-form-item>
-        <el-form-item v-if="!isEdit" label="发现位置" required style="flex-direction: column; align-items: stretch;">
-          <div style="width: 100%;">
+        <section class="form-section">
+          <h3>基础信息</h3>
+          <el-form-item label="动物类型" required>
+            <el-radio-group v-model="form.animalType">
+              <el-radio value="cat">猫</el-radio>
+              <el-radio value="dog">狗</el-radio>
+              <el-radio value="other">其他</el-radio>
+            </el-radio-group>
+            <el-input v-if="form.animalType === 'other'" v-model="form.customAnimalType" placeholder="请填写具体类型" style="width: 200px; margin-top: 8px;" />
+          </el-form-item>
+          <el-form-item label="动物昵称">
+            <el-input v-model="form.name" placeholder="如有多只猫狗可区别称呼" />
+          </el-form-item>
+        </section>
+
+        <section v-if="!isEdit" class="form-section">
+          <h3>发现位置</h3>
+          <el-form-item label="发现位置" required class="map-form-item">
             <AmapPicker v-model="mapLocation" />
-          </div>
-        </el-form-item>
-        <el-form-item label="健康状况">
-          <el-select v-model="form.healthStatus" placeholder="请选择" clearable>
-            <el-option label="良好" value="良好" />
-            <el-option label="受伤" value="受伤" />
-            <el-option label="体弱" value="体弱" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="绝育状态">
-          <el-select v-model="form.neuteredStatus" placeholder="请选择" clearable>
-            <el-option label="已绝育" value="已绝育" />
-            <el-option label="未绝育" value="未绝育" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="免疫状态">
-          <el-select v-model="form.immuneStatus" placeholder="请选择" clearable>
-            <el-option label="已免疫" value="已免疫" />
-            <el-option label="未免疫" value="未免疫" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="安置状态" required>
-          <el-select v-model="form.placementStatus">
-            <el-option label="原地流浪观察" value="observing" />
-            <el-option label="救助基地收容" value="sheltered" />
-            <el-option label="已开放领养" value="adoptable" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="现场照片">
-          <el-upload
-            action="/api/upload/image"
-            list-type="picture-card"
-            accept="image/*"
-            name="file"
-            :headers="uploadHeaders"
-            :on-success="onPhotoSuccess"
-            :on-remove="onPhotoRemove"
-            :before-upload="beforePhotoUpload"
-          >
-            <div style="display: flex; flex-direction: column; align-items: center;">
-              <el-icon><Plus /></el-icon>
-              <span style="font-size: 12px; color: #909399; margin-top: 4px;">点击上传图片</span>
-            </div>
-          </el-upload>
-        </el-form-item>
-        <el-form-item label="备注描述">
-          <el-input v-model="form.description" type="textarea" :rows="3" />
-        </el-form-item>
-        <el-form-item>
+          </el-form-item>
+        </section>
+
+        <section class="form-section">
+          <h3>健康与安置</h3>
+          <el-form-item label="健康状况">
+            <el-select v-model="form.healthStatus" placeholder="请选择" clearable>
+              <el-option label="良好" value="良好" />
+              <el-option label="受伤" value="受伤" />
+              <el-option label="体弱" value="体弱" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="绝育状态">
+            <el-select v-model="form.neuteredStatus" placeholder="请选择" clearable>
+              <el-option label="已绝育" value="已绝育" />
+              <el-option label="未绝育" value="未绝育" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="免疫状态">
+            <el-select v-model="form.immuneStatus" placeholder="请选择" clearable>
+              <el-option label="已免疫" value="已免疫" />
+              <el-option label="未免疫" value="未免疫" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="安置状态" required>
+            <el-select v-model="form.placementStatus">
+              <el-option label="原地流浪观察" value="observing" />
+              <el-option label="救助基地收容" value="sheltered" />
+              <el-option label="已开放领养" value="adoptable" />
+            </el-select>
+          </el-form-item>
+        </section>
+
+        <section class="form-section">
+          <h3>照片与备注</h3>
+          <el-form-item label="现场照片">
+            <el-upload
+              action="/api/upload/image"
+              list-type="picture-card"
+              accept="image/*"
+              name="file"
+              :headers="uploadHeaders"
+              :on-success="onPhotoSuccess"
+              :on-remove="onPhotoRemove"
+              :before-upload="beforePhotoUpload"
+            >
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <el-icon><Plus /></el-icon>
+                <span style="font-size: 12px; color: #909399; margin-top: 4px;">点击上传图片</span>
+              </div>
+            </el-upload>
+          </el-form-item>
+          <el-form-item label="备注描述">
+            <el-input v-model="form.description" type="textarea" :rows="3" />
+          </el-form-item>
+        </section>
+
+        <el-form-item class="submit-row">
           <el-button type="primary" size="large" @click="submit">{{ isEdit ? '更新档案' : '提交审核' }}</el-button>
         </el-form-item>
       </el-form>
@@ -167,3 +181,25 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.form-page { max-width: 860px; margin: 0 auto; }
+.form-card :deep(.el-card__body) { padding: 28px 32px; }
+.form-section { padding: 4px 0 8px; border-bottom: 1px solid #edf1f5; margin-bottom: 22px; }
+.form-section h3 { font-size: 17px; margin-bottom: 18px; color: var(--color-text); }
+.form-section:last-of-type { border-bottom: 0; margin-bottom: 8px; }
+.map-form-item { flex-direction: column; align-items: stretch; }
+.map-form-item :deep(.el-form-item__content) { display: block; width: 100%; margin-left: 0 !important; }
+.submit-row { margin-bottom: 0; }
+
+@media (max-width: 768px) {
+  .form-card :deep(.el-card__body) { padding: 18px 16px; }
+  .archive-create-page :deep(.el-form-item) { display: block; }
+  .archive-create-page :deep(.el-form-item__label) { width: 100% !important; justify-content: flex-start; margin-bottom: 6px; }
+  .archive-create-page :deep(.el-form-item__content) { margin-left: 0 !important; }
+  .archive-create-page :deep(.el-input),
+  .archive-create-page :deep(.el-select) { width: 100% !important; }
+  .submit-row { position: sticky; bottom: 0; z-index: 5; padding: 12px 0 2px; background: #fff; border-top: 1px solid #edf1f5; }
+  .submit-row :deep(.el-button) { width: 100%; }
+}
+</style>

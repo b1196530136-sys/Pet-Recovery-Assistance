@@ -1,53 +1,77 @@
 <template>
-  <div class="archive-detail-page" style="max-width: 900px; margin: 0 auto">
-    <el-card v-if="archive">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px">
-        <div style="display: flex; align-items: center">
-          <el-button @click="$router.back()" :icon="ArrowLeft" style="margin-right: 12px">返回</el-button>
-          <h2 style="margin: 0">{{ typeMap[archive.animalType] }} · 电子档案</h2>
+  <div class="archive-detail-page">
+    <el-button @click="$router.back()" :icon="ArrowLeft" class="back-btn">返回</el-button>
+    <el-card v-if="archive" class="detail-card">
+      <section class="detail-summary">
+        <div class="detail-cover">
+          <el-image
+            v-if="photoList.length"
+            :src="getPhotoUrl(photoList[0])"
+            :preview-src-list="previewPhotoList"
+            fit="cover"
+            preview-teleported
+          />
+          <div v-else class="detail-cover-placeholder">暂无图片</div>
         </div>
-        <div v-if="isOwner" style="display: flex; gap: 8px">
-          <el-tag v-if="archive.isUpdate" type="warning" style="margin-right: 8px">修改待审核</el-tag>
-          <el-button type="primary" @click="handleEdit">编辑</el-button>
-          <el-button type="danger" @click="handleDelete">删除</el-button>
-        </div>
-        <div v-else-if="archive.placementStatus === 'adoptable' && userStore.isLoggedIn">
-          <el-button type="success" @click="showAdoptDialog = true">我要领养</el-button>
-        </div>
-        <div v-else-if="archive.placementStatus === 'adoptable'">
-          <el-button type="success" @click="$router.push('/auth/login')">登录后可领养</el-button>
-        </div>
-      </div>
-
-      <div v-if="archive.photos" class="photo-gallery" style="margin-bottom: 20px">
-        <el-image
-          v-for="(photo, index) in photoList"
-          :key="index"
-          :src="getPhotoUrl(photo)"
-          :preview-src-list="previewPhotoList"
-          :initial-index="index"
-          fit="cover"
-          style="width: 200px; height: 200px; border-radius: 8px; margin-right: 12px; margin-bottom: 12px"
-        />
-      </div>
-
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="动物类型">{{ typeMap[archive.animalType] }}</el-descriptions-item>
-        <el-descriptions-item label="动物昵称">{{ archive.name || '无' }}</el-descriptions-item>
-        <el-descriptions-item label="安置状态">{{ placementMap[archive.placementStatus] }}</el-descriptions-item>
-        <el-descriptions-item label="健康状况">{{ archive.healthStatus || '未知' }}</el-descriptions-item>
-        <el-descriptions-item label="绝育/免疫">{{ archive.neuteredStatus || '未知' }}</el-descriptions-item>
-        <el-descriptions-item label="发现地点" :span="2">{{ archive.address }}</el-descriptions-item>
-        <el-descriptions-item label="发布人">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <el-avatar :size="28" :src="archive.publisherAvatar || '/images/default-avatar.png'" />
-            <span>{{ archive.publisherName || '匿名用户' }}</span>
+        <div class="detail-main">
+          <el-tag :type="placementTagType[archive.placementStatus]" size="large">{{ placementMap[archive.placementStatus] || '未知' }}</el-tag>
+          <h2>{{ typeMap[archive.animalType] || archive.animalType || '未知' }} · 电子档案</h2>
+          <p class="detail-address">{{ archive.address }}</p>
+          <div class="publisher-info">
+            <el-avatar :size="36" :src="archive.publisherAvatar || '/images/default-avatar.png'" />
+            <span>发布人：{{ archive.publisherName || '匿名用户' }}</span>
           </div>
-        </el-descriptions-item>
-        <el-descriptions-item label="发布时间">{{ formatTime(archive.createTime) }}</el-descriptions-item>
-      </el-descriptions>
-      <p style="margin-top: 16px">{{ archive.description }}</p>
-      <div ref="mapContainer" style="width: 100%; height: 300px; margin-top: 20px"></div>
+          <p class="action-hint">开放领养的档案可直接向发布人发送申请，后续沟通会在站内消息中跟进。</p>
+          <div class="action-row">
+            <template v-if="isOwner">
+              <el-tag v-if="archive.isUpdate" type="warning">修改待审核</el-tag>
+              <el-button type="primary" @click="handleEdit">编辑</el-button>
+              <el-button type="danger" @click="handleDelete">删除</el-button>
+            </template>
+            <el-button v-else-if="archive.placementStatus === 'adoptable' && userStore.isLoggedIn" type="success" size="large" @click="showAdoptDialog = true">我要领养</el-button>
+            <el-button v-else-if="archive.placementStatus === 'adoptable'" type="success" size="large" @click="$router.push('/auth/login')">登录后可领养</el-button>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>档案信息</h3>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="动物类型">{{ typeMap[archive.animalType] || archive.animalType }}</el-descriptions-item>
+          <el-descriptions-item label="动物昵称">{{ archive.name || '无' }}</el-descriptions-item>
+          <el-descriptions-item label="安置状态">{{ placementMap[archive.placementStatus] }}</el-descriptions-item>
+          <el-descriptions-item label="健康状况">{{ archive.healthStatus || '未知' }}</el-descriptions-item>
+          <el-descriptions-item label="绝育/免疫">{{ archive.neuteredStatus || '未知' }}</el-descriptions-item>
+          <el-descriptions-item label="发现地点" :span="2">{{ archive.address }}</el-descriptions-item>
+          <el-descriptions-item label="发布时间">{{ formatTime(archive.createTime) }}</el-descriptions-item>
+        </el-descriptions>
+      </section>
+
+      <section v-if="photoList.length" class="detail-section">
+        <h3>现场照片</h3>
+        <div class="photo-gallery">
+          <el-image
+            v-for="(photo, index) in photoList"
+            :key="index"
+            :src="getPhotoUrl(photo)"
+            :preview-src-list="previewPhotoList"
+            :initial-index="index"
+            fit="cover"
+            preview-teleported
+          />
+        </div>
+      </section>
+
+      <section class="detail-section">
+        <h3>备注描述</h3>
+        <p class="description-text">{{ archive.description || '暂无描述' }}</p>
+      </section>
+
+      <section class="detail-section map-section">
+        <h3>发现位置</h3>
+        <p class="page-lead">地图展示该动物首次登记的发现地点。</p>
+        <div ref="mapContainer" class="detail-map"></div>
+      </section>
     </el-card>
 
     <el-dialog v-model="showAdoptDialog" title="联系发布人" width="500px">
@@ -88,6 +112,7 @@ const adoptLoading = ref(false)
 const adoptForm = ref({ content: '' })
 const typeMap = { cat: '猫', dog: '狗', other: '其他' }
 const placementMap = { observing: '原地观察', sheltered: '基地收容', adoptable: '开放领养', adopted: '已被领养' }
+const placementTagType = { observing: 'info', sheltered: 'warning', adoptable: 'success', adopted: 'success' }
 
 const isOwner = computed(() => {
   return userStore.isLoggedIn && archive.value && userStore.userInfo?.id === archive.value.userId
@@ -170,3 +195,41 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.archive-detail-page { max-width: 980px; margin: 0 auto; }
+.back-btn { margin-bottom: 14px; }
+.detail-card :deep(.el-card__body) { padding: 22px; }
+.detail-summary { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; gap: 24px; align-items: stretch; margin-bottom: 28px; padding: 16px; border-radius: 10px; background: linear-gradient(135deg, #f3fbf5, #fffaf2); }
+.detail-cover,
+.detail-cover :deep(.el-image) { width: 100%; min-height: 260px; height: 100%; border-radius: 8px; overflow: hidden; background: #f5f7fa; }
+.detail-cover-placeholder { height: 100%; min-height: 260px; display: flex; align-items: center; justify-content: center; color: #98a2b3; }
+.detail-main { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; padding: 8px 0; }
+.detail-main h2 { font-size: 30px; line-height: 1.25; color: var(--color-text); }
+.detail-address { color: var(--color-muted); line-height: 1.7; }
+.publisher-info { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f7f9fc; border: 1px solid #edf1f5; border-radius: 8px; color: #606266; font-size: 14px; }
+.action-hint { color: #667085; font-size: 13px; line-height: 1.7; }
+.action-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
+.detail-section { margin-top: 24px; }
+.detail-section h3 { font-size: 18px; margin-bottom: 12px; color: var(--color-text); }
+.photo-gallery { display: flex; gap: 10px; flex-wrap: wrap; }
+.photo-gallery :deep(.el-image) { width: 150px; height: 150px; border-radius: 8px; overflow: hidden; }
+.description-text { color: #475467; line-height: 1.8; white-space: pre-wrap; }
+.detail-map { width: 100%; height: min(320px, 48vh); margin-top: 12px; border: 1px solid #edf1f5; border-radius: 8px; overflow: hidden; }
+
+@media (max-width: 768px) {
+  .detail-card :deep(.el-card__body) { padding: 16px; }
+  .detail-summary { grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px; }
+  .detail-cover,
+  .detail-cover :deep(.el-image) { min-height: 230px; height: 230px; }
+  .detail-main h2 { font-size: 24px; }
+  .action-row,
+  .action-row :deep(.el-button) { width: 100%; }
+  .photo-gallery :deep(.el-image) { width: calc(50% - 5px); height: 150px; }
+  .archive-detail-page :deep(.el-descriptions__body .el-descriptions__table) { display: block; }
+  .archive-detail-page :deep(.el-descriptions__body tbody),
+  .archive-detail-page :deep(.el-descriptions__body tr),
+  .archive-detail-page :deep(.el-descriptions__body th),
+  .archive-detail-page :deep(.el-descriptions__body td) { display: block; width: 100% !important; }
+}
+</style>

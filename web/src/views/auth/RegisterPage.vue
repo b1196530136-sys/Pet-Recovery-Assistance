@@ -1,5 +1,13 @@
 <template>
   <div class="auth-page">
+    <section class="auth-brand">
+      <div class="auth-photo"></div>
+      <div class="auth-brand-copy">
+        <img class="auth-mark" src="/favicon.svg" alt="" aria-hidden="true" />
+        <h1>加入寻宠互助</h1>
+        <p>注册后可以发布寻宠、提交线索，并参与流浪动物档案维护。</p>
+      </div>
+    </section>
     <el-card class="auth-card">
       <div style="text-align: left; margin-bottom: 8px;">
         <router-link to="/" style="color: #909399; font-size: 13px;">&larr; 返回首页</router-link>
@@ -122,9 +130,26 @@ async function handleRegister() {
 </script>
 
 <style scoped>
-.auth-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f5f7fa; }
+.auth-page { display: grid; grid-template-columns: minmax(280px, 390px) 400px; gap: 36px; justify-content: center; align-items: center; min-height: 100vh; padding: 32px; background: #f5f7fa; }
+.auth-brand { color: var(--color-text); border-radius: 12px; overflow: hidden; background: #fff; border: 1px solid var(--color-line); box-shadow: var(--shadow-soft); }
+.auth-photo { min-height: 240px; background: url('/images/shelter-community.jpg') center/cover no-repeat; }
+.auth-brand-copy { padding: 22px; }
+.auth-mark { width: 54px; height: 54px; display: block; border-radius: 14px; margin-bottom: 18px; box-shadow: 0 10px 22px rgba(47, 141, 243, 0.18); }
+.auth-brand h1 { font-size: 32px; margin-bottom: 12px; }
+.auth-brand p { color: var(--color-muted); line-height: 1.8; font-size: 15px; }
 .auth-card { width: 400px; }
 .auth-title { text-align: center; margin-bottom: 24px; font-size: 24px; }
 .auth-links { text-align: center; margin-top: 16px; }
 .auth-links a { color: #409eff; font-size: 14px; }
+
+@media (max-width: 768px) {
+  .auth-page { grid-template-columns: 1fr; gap: 18px; align-items: start; min-height: 100vh; padding: 28px 16px; }
+  .auth-brand { text-align: center; border: 0; box-shadow: none; background: transparent; }
+  .auth-photo { display: none; }
+  .auth-brand-copy { padding: 0; }
+  .auth-mark { margin: 0 auto 12px; width: 44px; height: 44px; border-radius: 12px; }
+  .auth-brand h1 { font-size: 24px; margin-bottom: 8px; }
+  .auth-brand p { font-size: 13px; }
+  .auth-card { width: 100%; }
+}
 </style>

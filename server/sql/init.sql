@@ -16,10 +16,13 @@ CREATE TABLE IF NOT EXISTS sys_user (
     nickname     VARCHAR(64)  DEFAULT NULL COMMENT '昵称',
     avatar       VARCHAR(512) DEFAULT NULL COMMENT '头像URL',
     phone        VARCHAR(20)  DEFAULT NULL COMMENT '联系电话(加密存储)',
-    role         VARCHAR(20)  NOT NULL DEFAULT 'USER' COMMENT '角色: USER/CERTIFIED/ADMIN',
+    role         VARCHAR(20)  NOT NULL DEFAULT 'USER' COMMENT '角色: USER/PENDING_CERT/CERTIFIED/ADMIN',
+    cert_credentials VARCHAR(2048) DEFAULT NULL COMMENT '认证凭证URL(逗号分隔)',
     create_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
     update_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     status       TINYINT      NOT NULL DEFAULT 1 COMMENT '状态: 0=禁用 1=正常',
+    login_fail_count INT       NOT NULL DEFAULT 0 COMMENT '连续登录失败次数',
+    lock_time    DATETIME     DEFAULT NULL COMMENT '账号锁定截止时间',
     INDEX idx_email (email),
     INDEX idx_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户主表';
@@ -65,11 +68,12 @@ CREATE TABLE IF NOT EXISTS stray_animal_archive (
     health_status    VARCHAR(64)   DEFAULT NULL COMMENT '健康状况评估',
     neutered_status  VARCHAR(64)   DEFAULT NULL COMMENT '绝育状态(已绝育/未绝育)',
     immune_status    VARCHAR(64)   DEFAULT NULL COMMENT '免疫状态(已免疫/未免疫)',
-    placement_status VARCHAR(64)   DEFAULT NULL COMMENT '安置状态: observing/sheltered/adoptable',
+    placement_status VARCHAR(64)   DEFAULT NULL COMMENT '安置状态: observing/sheltered/adoptable/adopted',
     photos           TEXT          DEFAULT NULL COMMENT '现场照片(JSON数组)',
     description      TEXT          DEFAULT NULL COMMENT '备注描述',
     status           VARCHAR(20)   NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/APPROVED/REJECTED',
     reject_reason    VARCHAR(512)  DEFAULT NULL COMMENT '驳回原因',
+    pending_data     TEXT          DEFAULT NULL COMMENT '待审核修改数据(JSON)',
     create_time      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '建档时间',
     update_time      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_user (user_id),
@@ -85,7 +89,7 @@ CREATE TABLE IF NOT EXISTS sys_im_message (
     sender_id     BIGINT        NOT NULL COMMENT '发送方(线索提供人)ID',
     receiver_id   BIGINT        NOT NULL COMMENT '接收方(启事主人)ID',
     post_id       BIGINT        DEFAULT NULL COMMENT '关联启事ID',
-    msg_type      TINYINT       NOT NULL DEFAULT 1 COMMENT '消息类型: 1=线索 2=普通私信',
+    msg_type      TINYINT       NOT NULL DEFAULT 0 COMMENT '消息类型: 0=普通私信 1=线索',
     content       TEXT          DEFAULT NULL COMMENT '消息内容/目击描述',
     clue_time     DATETIME      DEFAULT NULL COMMENT '目击时间(线索消息)',
     clue_longitude DECIMAL(10,7) DEFAULT NULL COMMENT '目击经度(线索消息)',
@@ -138,4 +142,3 @@ INSERT INTO sys_user (email, password, nickname, role, status)
 VALUES ('admin@petrecovery.com',
         '$2b$10$JLvIuzkoeunleBDoQ.kdK.EQtpY9ffZrWDARMJzkEKfWxIFwjtjzi',
         '系统管理员', 'ADMIN', 1);
-

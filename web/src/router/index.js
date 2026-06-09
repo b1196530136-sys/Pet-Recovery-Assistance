@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { alertArchiveCreateDenied, canCreateArchive } from '@/utils/archivePermission'
 
 const routes = [
   {
@@ -12,7 +13,7 @@ const routes = [
       { path: 'posts/create', name: 'PostCreate', component: () => import('@/views/post/PostCreate.vue') },
       { path: 'archives', name: 'ArchiveList', component: () => import('@/views/archive/ArchiveList.vue') },
       { path: 'archives/:id', name: 'ArchiveDetail', component: () => import('@/views/archive/ArchiveDetail.vue') },
-      { path: 'archives/create', name: 'ArchiveCreate', component: () => import('@/views/archive/ArchiveCreate.vue') },
+      { path: 'archives/create', name: 'ArchiveCreate', component: () => import('@/views/archive/ArchiveCreate.vue'), beforeEnter: requireArchiveCreator },
       { path: 'messages', name: 'MessageCenter', component: () => import('@/views/message/MessageCenter.vue') },
       { path: 'profile', name: 'Profile', component: () => import('@/views/user/ProfilePage.vue') },
     ],
@@ -58,6 +59,21 @@ function requireAdmin(to, from, next) {
     return next('/auth/login')
   }
   if (!userStore.isAdmin) {
+    return next('/')
+  }
+  next()
+}
+
+function requireArchiveCreator(to, from, next) {
+  if (to.query.id) {
+    return next()
+  }
+  const userStore = useUserStore()
+  if (!canCreateArchive(userStore)) {
+    alertArchiveCreateDenied()
+    if (from.matched.length) {
+      return next(false)
+    }
     return next('/')
   }
   next()

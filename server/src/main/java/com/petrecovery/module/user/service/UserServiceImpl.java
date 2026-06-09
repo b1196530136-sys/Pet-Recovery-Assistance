@@ -73,17 +73,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
     public SysUser loginByCode(String email) {
         SysUser user = getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getEmail, email));
         if (user == null) {
-            user = new SysUser();
-            user.setEmail(email);
-            user.setNickname(email.split("@")[0]);
-            user.setRole(UserRole.ROLE_USER);
-            user.setStatus(1);
-            save(user);
+            throw new RuntimeException("邮箱未注册");
         }
         if (user.getStatus() != null && user.getStatus() == 0) {
             throw new RuntimeException("账号已被封禁");
         }
         return user;
+    }
+
+    @Override
+    public boolean isEmailRegistered(String email) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+        return exists(new LambdaQueryWrapper<SysUser>().eq(SysUser::getEmail, email.trim()));
     }
 
     @Override

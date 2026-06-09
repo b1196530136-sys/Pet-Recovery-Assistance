@@ -1,10 +1,10 @@
 <template>
   <div class="message-page">
-    <h2 style="margin-bottom: 20px">我的消息</h2>
+    <h2 class="page-title">我的消息</h2>
 
     <el-row :gutter="20">
-      <el-col :span="8">
-        <el-card>
+      <el-col :xs="24" :md="8">
+        <el-card class="conversation-card">
           <template #header>
             <span>会话列表</span>
           </template>
@@ -30,8 +30,8 @@
         </el-card>
       </el-col>
 
-      <el-col :span="16">
-        <el-card>
+      <el-col :xs="24" :md="16">
+        <el-card class="message-card">
           <template #header>
             <span>消息详情</span>
           </template>
@@ -377,6 +377,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.message-page { max-width: 1100px; margin: 0 auto; }
+.conversation-card,
+.message-card { height: 100%; }
+.conversation-card :deep(.el-card__body),
+.message-card :deep(.el-card__body) { min-height: 340px; }
 .conv-item { padding: 12px; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0; }
 .conv-item .el-avatar { flex-shrink: 0; }
 .conv-item:hover, .conv-item.active { background: #ecf5ff; }
@@ -404,4 +409,13 @@ onUnmounted(() => {
 .msg-input-bar .el-input { flex: 1; }
 .adopt-banner { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 12px; background: #fff7e6; border: 1px solid #ffd591; border-radius: 8px; font-size: 14px; color: #303133; }
 .adopt-banner span { flex: 1; }
+
+@media (max-width: 768px) {
+  .conversation-card :deep(.el-card__body),
+  .message-card :deep(.el-card__body) { min-height: 220px; }
+  .msg-list { max-height: 420px; }
+  .msg-input-bar { position: sticky; bottom: 0; background: #fff; }
+  .msg-bubble,
+  .clue-card { max-width: 82%; }
+}
 </style>
