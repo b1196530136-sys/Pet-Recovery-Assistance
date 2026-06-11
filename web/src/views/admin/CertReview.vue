@@ -29,6 +29,7 @@
       <el-table-column label="操作" width="200">
         <template #default="{ row }">
           <el-button size="small" type="success" @click="approve(row)">认证通过</el-button>
+          <el-button size="small" type="danger" @click="reject(row)">驳回</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -53,6 +54,12 @@ async function load() {
 async function approve(row) {
   await adminApi.reviewCertification(row.id, 'APPROVED')
   ElMessage.success('已通过')
+  load()
+}
+
+async function reject(row) {
+  await adminApi.reviewCertification(row.id, 'REJECTED')
+  ElMessage.success('已驳回')
   load()
 }
 

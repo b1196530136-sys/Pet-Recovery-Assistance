@@ -22,4 +22,7 @@ export const userApi = {
   updateAvatar(avatar) {
     return request.post('/user/update-avatar', { avatar })
   },
+  updatePhone(phone) {
+    return request.post('/user/update-phone', { phone })
+  },
 }

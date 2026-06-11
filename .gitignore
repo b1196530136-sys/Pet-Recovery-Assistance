@@ -19,6 +19,9 @@ build/
 
 # Environment
 .env
+.env.*
+!.env.example
+!.env.*.example
 
 #image
 *.png
@@ -27,7 +30,18 @@ build/
 !web/public/images/archive-care.jpg
 !web/public/images/shelter-community.jpg
 
-#document
+# document
 *.docx
+test/*.xlsx
+test/~$*
 
-/test
+# test artifacts
+test/.env
+test/.venv/
+test/.pytest_cache/
+test/__pycache__/
+test/**/__pycache__/
+test/reports/*
+!test/reports/.gitkeep
+test/screenshots/*
+!test/screenshots/.gitkeep

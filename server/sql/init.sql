@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     password     VARCHAR(256) DEFAULT NULL COMMENT '密码(bcrypt加密)',
     nickname     VARCHAR(64)  DEFAULT NULL COMMENT '昵称',
     avatar       VARCHAR(512) DEFAULT NULL COMMENT '头像URL',
-    phone        VARCHAR(20)  DEFAULT NULL COMMENT '联系电话(加密存储)',
+    phone        VARCHAR(256) DEFAULT NULL COMMENT '联系电话(加密存储)',
     role         VARCHAR(20)  NOT NULL DEFAULT 'USER' COMMENT '角色: USER/PENDING_CERT/CERTIFIED/ADMIN',
     cert_credentials VARCHAR(2048) DEFAULT NULL COMMENT '认证凭证URL(逗号分隔)',
     create_time  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS sys_im_message (
     sender_id     BIGINT        NOT NULL COMMENT '发送方(线索提供人)ID',
     receiver_id   BIGINT        NOT NULL COMMENT '接收方(启事主人)ID',
     post_id       BIGINT        DEFAULT NULL COMMENT '关联启事ID',
-    msg_type      TINYINT       NOT NULL DEFAULT 0 COMMENT '消息类型: 0=普通私信 1=线索',
+    msg_type      TINYINT       NOT NULL DEFAULT 0 COMMENT '消息类型: 0=普通私信 1=线索 2=系统消息',
     content       TEXT          DEFAULT NULL COMMENT '消息内容/目击描述',
     clue_time     DATETIME      DEFAULT NULL COMMENT '目击时间(线索消息)',
     clue_longitude DECIMAL(10,7) DEFAULT NULL COMMENT '目击经度(线索消息)',
@@ -126,6 +126,9 @@ CREATE TABLE IF NOT EXISTS adoption_request (
     applicant_id  BIGINT        NOT NULL COMMENT '申请人ID',
     owner_id      BIGINT        NOT NULL COMMENT '档案发布人ID',
     message       TEXT          DEFAULT NULL COMMENT '申请留言',
+    contact       VARCHAR(64)   DEFAULT NULL COMMENT '申请人联系方式',
+    living_condition TEXT       DEFAULT NULL COMMENT '居住条件',
+    pet_experience TEXT         DEFAULT NULL COMMENT '养宠经验',
     status        VARCHAR(20)   NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/APPROVED/REJECTED',
     create_time   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '申请时间',
     update_time   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -134,6 +137,65 @@ CREATE TABLE IF NOT EXISTS adoption_request (
     INDEX idx_owner (owner_id),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='领养申请表';
+
+-- ============================================================
+-- 7. 领养记录表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS adoption_record (
+    id              BIGINT       AUTO_INCREMENT PRIMARY KEY COMMENT '记录ID',
+    request_id      BIGINT       NOT NULL COMMENT '领养申请ID',
+    archive_id      BIGINT       NOT NULL COMMENT '关联档案ID',
+    adopter_id      BIGINT       NOT NULL COMMENT '领养人ID',
+    owner_id        BIGINT       NOT NULL COMMENT '档案发布人ID',
+    contact         VARCHAR(64)  DEFAULT NULL COMMENT '申请人联系方式',
+    living_condition TEXT        DEFAULT NULL COMMENT '居住条件',
+    pet_experience  TEXT         DEFAULT NULL COMMENT '养宠经验',
+    follow_up_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '回访状态: PENDING/VISITED/ABNORMAL',
+    create_time     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '生成时间',
+    update_time     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_request (request_id),
+    INDEX idx_archive (archive_id),
+    INDEX idx_adopter (adopter_id),
+    INDEX idx_owner (owner_id),
+    INDEX idx_follow_up_status (follow_up_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='领养记录表';
+
+-- ============================================================
+-- 8. 用户拉黑关系表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sys_user_block (
+    id              BIGINT       AUTO_INCREMENT PRIMARY KEY COMMENT '关系ID',
+    user_id         BIGINT       NOT NULL COMMENT '执行拉黑的用户ID',
+    blocked_user_id BIGINT       NOT NULL COMMENT '被拉黑用户ID',
+    reason          VARCHAR(255) DEFAULT NULL COMMENT '拉黑原因',
+    create_time     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '拉黑时间',
+    UNIQUE KEY uk_user_block (user_id, blocked_user_id),
+    INDEX idx_user_blocked (user_id, blocked_user_id),
+    INDEX idx_blocked_user (blocked_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户拉黑关系表';
+
+-- ============================================================
+-- 9. 用户举报记录表
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sys_user_report (
+    id               BIGINT       AUTO_INCREMENT PRIMARY KEY COMMENT '举报ID',
+    reporter_id      BIGINT       NOT NULL COMMENT '举报人ID',
+    reported_user_id BIGINT       NOT NULL COMMENT '被举报用户ID',
+    message_id       BIGINT       DEFAULT NULL COMMENT '关联消息ID',
+    report_type      VARCHAR(32)  NOT NULL COMMENT '举报类型: SPAM/HARASSMENT/FALSE_CLUE/OTHER',
+    reason           VARCHAR(128) DEFAULT NULL COMMENT '举报原因摘要',
+    detail           TEXT         DEFAULT NULL COMMENT '补充说明',
+    message_snapshot TEXT         DEFAULT NULL COMMENT '举报时的消息快照',
+    status           VARCHAR(20)  NOT NULL DEFAULT 'PENDING' COMMENT '处理状态: PENDING/RESOLVED/REJECTED',
+    handle_note      VARCHAR(512) DEFAULT NULL COMMENT '处理备注',
+    handled_by       BIGINT       DEFAULT NULL COMMENT '处理管理员ID',
+    create_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '举报时间',
+    update_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_reporter_status (reporter_id, status),
+    INDEX idx_reported_status (reported_user_id, status),
+    INDEX idx_report_message (message_id),
+    INDEX idx_report_status_time (status, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户举报记录表';
 
 -- ============================================================
 -- 初始化管理员账号(密码: admin123)

@@ -1,6 +1,8 @@
 <template>
   <div class="post-create-page form-page">
-    <h2 class="page-title">发布寻宠启事</h2>
+    <el-button v-if="isEdit" @click="$router.back()" style="margin-bottom: 8px">返回</el-button>
+    <h2 class="page-title">{{ isEdit ? '修改寻宠启事' : '发布寻宠启事' }}</h2>
+    <el-alert v-if="rejectReason" :title="`审核未通过：${rejectReason}`" type="warning" :closable="false" show-icon style="margin-bottom: 16px" />
     <el-card class="form-card">
       <el-form :model="form" label-width="100px">
         <section class="form-section">
@@ -27,6 +29,7 @@
             <el-upload
               action="/api/upload/image"
               list-type="picture-card"
+              v-model:file-list="uploadFileList"
               :headers="uploadHeaders"
               name="file"
               accept="image/*"
@@ -68,7 +71,7 @@
         </section>
 
         <el-form-item class="submit-row">
-          <el-button type="primary" size="large" @click="submit">提交审核</el-button>
+          <el-button type="primary" size="large" @click="submit">{{ isEdit ? '重新提交审核' : '提交审核' }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -76,17 +79,21 @@
 </template>
 
 <script setup>
-import { reactive, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { reactive, computed, watch, onMounted, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { postApi } from '@/api/post'
 import { useUserStore } from '@/store/user'
 import AmapPicker from '@/components/map/AmapPicker.vue'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
-const form = reactive({ petType: 'cat', customPetType: '', breed: '', petName: '', lostTime: '', reward: '', description: '', photos: '', longitude: '', latitude: '', address: '' })
+const isEdit = computed(() => !!route.query.id)
+const rejectReason = ref('')
+const form = reactive({ id: null, petType: 'cat', customPetType: '', breed: '', petName: '', lostTime: '', reward: '', description: '', photos: '', longitude: '', latitude: '', address: '' })
 const photoUrls = reactive([])
+const uploadFileList = ref([])
 
 const uploadHeaders = computed(() => ({
   Authorization: `Bearer ${userStore.token}`
@@ -106,17 +113,20 @@ function beforeUpload(file) {
   return true
 }
 
-function onUploadSuccess(response) {
+function syncPhotoUrls(uploadFiles) {
+  photoUrls.splice(0, photoUrls.length, ...uploadFiles.map(file => file.response?.data || file.url).filter(Boolean))
+  form.photos = photoUrls.join(',')
+}
+
+function onUploadSuccess(response, file, uploadFiles) {
   if (response.code === 200 && response.data) {
-    photoUrls.push(response.data)
-    form.photos = photoUrls.join(',')
+    file.url = response.data
+    syncPhotoUrls(uploadFiles)
   }
 }
 
-function onUploadRemove() {
-  // 重新从当前上传列表构建photoUrls（简化处理）
-  photoUrls.pop()
-  form.photos = photoUrls.join(',')
+function onUploadRemove(file, uploadFiles) {
+  syncPhotoUrls(uploadFiles)
 }
 
 function disabledFutureDate(time) {
@@ -135,11 +145,42 @@ async function submit() {
   form.longitude = mapLocation.lng
   form.latitude = mapLocation.lat
   form.address = mapLocation.address
-  if (form.petType === 'other' && form.customPetType) form.petType = form.customPetType
-  await postApi.create(form)
-  ElMessage.success('提交成功，请等待后台审核')
+  const payload = { ...form }
+  if (payload.petType === 'other' && payload.customPetType) payload.petType = payload.customPetType
+  delete payload.customPetType
+  if (isEdit.value) {
+    await postApi.update(payload)
+    ElMessage.success('已重新提交，请等待后台审核')
+  } else {
+    await postApi.create(payload)
+    ElMessage.success('提交成功，请等待后台审核')
+  }
   router.push('/posts')
 }
+
+onMounted(async () => {
+  if (!isEdit.value) return
+  const res = await postApi.detail(route.query.id)
+  const data = res.data
+  Object.assign(form, {
+    id: data.id,
+    petType: ['cat', 'dog', 'other'].includes(data.petType) ? data.petType : 'other',
+    customPetType: ['cat', 'dog', 'other'].includes(data.petType) ? '' : data.petType,
+    breed: data.breed || '',
+    petName: data.petName || '',
+    lostTime: data.lostTime || '',
+    reward: data.reward || '',
+    description: data.description || '',
+    photos: data.photos || '',
+    longitude: data.longitude || '',
+    latitude: data.latitude || '',
+    address: data.address || '',
+  })
+  rejectReason.value = data.rejectReason || ''
+  photoUrls.splice(0, photoUrls.length, ...(data.photos || '').split(',').filter(Boolean))
+  uploadFileList.value = photoUrls.map((url, index) => ({ name: `照片${index + 1}`, url }))
+  Object.assign(mapLocation, { lng: data.longitude || '', lat: data.latitude || '', address: data.address || '' })
+})
 </script>
 
 <style scoped>

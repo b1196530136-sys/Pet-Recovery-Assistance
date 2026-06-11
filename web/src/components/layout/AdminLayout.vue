@@ -20,6 +20,11 @@
               <span>认证审批</span>
             </el-badge>
           </el-menu-item>
+          <el-menu-item index="/admin/reports">
+            <el-badge :value="pendingSummary.pendingReports" :hidden="pendingSummary.pendingReports === 0" :max="99" class="menu-badge">
+              <span>举报处理</span>
+            </el-badge>
+          </el-menu-item>
           <el-menu-item index="/admin/users">用户权限管理</el-menu-item>
           <el-menu-item index="/admin/front/posts" style="border-top: 1px solid #415a6e; margin-top: 8px; padding-top: 4px;">
             <span style="color: #409eff">浏览寻宠大厅</span>
@@ -63,6 +68,7 @@ const pendingSummary = ref({
   pendingPosts: 0,
   pendingArchives: 0,
   pendingCertifications: 0,
+  pendingReports: 0,
   pendingTotal: 0,
 })
 
@@ -75,6 +81,7 @@ async function fetchPendingSummary() {
       pendingPosts: Number(res.data?.pendingPosts || 0),
       pendingArchives: Number(res.data?.pendingArchives || 0),
       pendingCertifications: Number(res.data?.pendingCertifications || 0),
+      pendingReports: Number(res.data?.pendingReports || 0),
       pendingTotal: Number(res.data?.pendingTotal || 0),
     }
   } catch {

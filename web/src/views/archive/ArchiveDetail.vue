@@ -74,18 +74,27 @@
       </section>
     </el-card>
 
-    <el-dialog v-model="showAdoptDialog" title="联系发布人" width="500px">
-      <el-form :model="adoptForm" label-width="80px">
+    <el-dialog v-model="showAdoptDialog" title="提交领养申请" width="540px">
+      <el-form :model="adoptForm" label-width="96px">
         <el-form-item label="发布人">
           <span>{{ archive?.publisherName || '匿名用户' }}</span>
         </el-form-item>
-        <el-form-item label="留言内容" required>
-          <el-input v-model="adoptForm.content" type="textarea" :rows="4" placeholder="请说明您的领养意向和联系方式" />
+        <el-form-item label="联系方式" required>
+          <el-input v-model.trim="adoptForm.contact" maxlength="64" placeholder="请输入手机号、微信号或其他常用联系方式" />
+        </el-form-item>
+        <el-form-item label="居住条件" required>
+          <el-input v-model="adoptForm.livingCondition" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="例如住房类型、是否自有住房、同住人是否同意等" />
+        </el-form-item>
+        <el-form-item label="养宠经验" required>
+          <el-input v-model="adoptForm.petExperience" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="请说明是否养过宠物、照护经验和当前家中动物情况" />
+        </el-form-item>
+        <el-form-item label="留言内容">
+          <el-input v-model="adoptForm.content" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="补充您的领养意向或其他想说明的信息" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showAdoptDialog = false">取消</el-button>
-        <el-button type="primary" :loading="adoptLoading" @click="submitAdopt">发送</el-button>
+        <el-button type="primary" :loading="adoptLoading" @click="submitAdopt">提交申请</el-button>
       </template>
     </el-dialog>
   </div>
@@ -100,7 +109,7 @@ import { archiveApi } from '@/api/archive'
 import { adoptionApi } from '@/api/adoption'
 import { messageApi } from '@/api/message'
 import { useUserStore } from '@/store/user'
-import AMapLoader from '@amap/amap-jsapi-loader'
+import { loadAmap } from '@/utils/amap'
 
 const route = useRoute()
 const router = useRouter()
@@ -109,7 +118,7 @@ const archive = ref(null)
 const mapContainer = ref(null)
 const showAdoptDialog = ref(false)
 const adoptLoading = ref(false)
-const adoptForm = ref({ content: '' })
+const adoptForm = ref({ content: '', contact: '', livingCondition: '', petExperience: '' })
 const typeMap = { cat: '猫', dog: '狗', other: '其他' }
 const placementMap = { observing: '原地观察', sheltered: '基地收容', adoptable: '开放领养', adopted: '已被领养' }
 const placementTagType = { observing: 'info', sheltered: 'warning', adoptable: 'success', adopted: 'success' }
@@ -153,8 +162,16 @@ async function handleDelete() {
 }
 
 async function submitAdopt() {
-  if (!adoptForm.value.content.trim()) {
-    ElMessage.warning('请填写留言内容')
+  if (!adoptForm.value.contact.trim()) {
+    ElMessage.warning('请填写联系方式')
+    return
+  }
+  if (!adoptForm.value.livingCondition.trim()) {
+    ElMessage.warning('请填写居住条件')
+    return
+  }
+  if (!adoptForm.value.petExperience.trim()) {
+    ElMessage.warning('请填写养宠经验')
     return
   }
   adoptLoading.value = true
@@ -162,10 +179,13 @@ async function submitAdopt() {
     await adoptionApi.create({
       archiveId: archive.value.id,
       message: adoptForm.value.content,
+      contact: adoptForm.value.contact,
+      livingCondition: adoptForm.value.livingCondition,
+      petExperience: adoptForm.value.petExperience,
     })
     ElMessage.success('领养申请已提交，请等待发布人回复')
     showAdoptDialog.value = false
-    adoptForm.value.content = ''
+    adoptForm.value = { content: '', contact: '', livingCondition: '', petExperience: '' }
   } catch { /* ignore */ }
   adoptLoading.value = false
 }
@@ -176,13 +196,7 @@ onMounted(async () => {
 
   if (archive.value?.longitude && archive.value?.latitude) {
     await nextTick()
-    window._AMapSecurityConfig = {
-      securityJsCode: 'd2a114ab986fe29825688ec540030b5a',
-    }
-    AMapLoader.load({
-      key: 'eb4473d0bf626ceed61dbb79c86ba988',
-      version: '2.0',
-    }).then((AMap) => {
+    loadAmap().then((AMap) => {
       const map = new AMap.Map(mapContainer.value, {
         zoom: 15,
         center: [parseFloat(archive.value.longitude), parseFloat(archive.value.latitude)],
@@ -191,6 +205,8 @@ onMounted(async () => {
         position: [parseFloat(archive.value.longitude), parseFloat(archive.value.latitude)],
       })
       map.add(marker)
+    }).catch((error) => {
+      ElMessage.error(error.message || '地图加载失败')
     })
   }
 })

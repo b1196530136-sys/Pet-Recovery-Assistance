@@ -12,7 +12,7 @@
         </nav>
         <div class="header-right desktop-actions">
           <template v-if="userStore.isLoggedIn">
-            <el-badge :value="userStore.unreadCount" :hidden="userStore.unreadCount === 0" class="msg-badge">
+            <el-badge :value="userStore.unreadCount" :hidden="userStore.unreadCount === 0" :max="99" class="msg-badge">
               <router-link to="/messages">消息</router-link>
             </el-badge>
             <div class="user-block" @click="goProfile">
@@ -34,7 +34,9 @@
         <router-link to="/posts" @click="menuOpen = false">寻宠大厅</router-link>
         <router-link to="/archives" @click="menuOpen = false">流浪动物档案</router-link>
         <template v-if="userStore.isLoggedIn">
-          <router-link to="/messages" @click="menuOpen = false">消息</router-link>
+          <el-badge :value="userStore.unreadCount" :hidden="userStore.unreadCount === 0" :max="99" class="mobile-msg-badge">
+            <router-link to="/messages" @click="menuOpen = false">消息</router-link>
+          </el-badge>
           <button class="mobile-user-link" type="button" @click="goProfile">{{ displayName }}</button>
           <el-button type="danger" size="small" @click="handleLogout">退出登录</el-button>
         </template>
@@ -54,8 +56,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElNotification } from 'element-plus'
 import { Close, Menu } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import { onMessage } from '@/utils/websocket'
@@ -63,6 +66,7 @@ import { onMessage } from '@/utils/websocket'
 const userStore = useUserStore()
 const router = useRouter()
 const menuOpen = ref(false)
+let wsUnsubscribe = null
 
 const displayName = computed(() => {
   const info = userStore.userInfo
@@ -90,9 +94,32 @@ function goProfile() {
 onMounted(() => {
   if (userStore.isLoggedIn) {
     userStore.fetchUnread()
-    onMessage(() => userStore.fetchUnread())
+    wsUnsubscribe = onMessage((msg) => {
+      userStore.fetchUnread()
+      if (msg.msgType === 2 && msg.receiverId === userStore.userInfo?.id) {
+        const payload = parseSystemPayload(msg.content)
+        ElNotification({
+          title: payload.title || '系统消息',
+          message: payload.body || '你有一条新的系统消息',
+          type: payload.resultType === 'REJECTED' ? 'warning' : 'success',
+          duration: 5000,
+        })
+      }
+    })
   }
 })
+
+onUnmounted(() => {
+  if (wsUnsubscribe) wsUnsubscribe()
+})
+
+function parseSystemPayload(content) {
+  try {
+    return JSON.parse(content || '{}')
+  } catch {
+    return { title: '系统消息', body: content || '你有一条新的系统消息' }
+  }
+}
 </script>
 
 <style scoped>
@@ -106,6 +133,8 @@ onMounted(() => {
 .nav-links a:hover, .nav-links a.router-link-active { color: var(--color-primary); }
 .header-right { display: flex; align-items: center; gap: 16px; }
 .msg-badge { margin-right: 8px; }
+.mobile-msg-badge { width: 100%; }
+.mobile-msg-badge :deep(.el-badge__content) { right: 8px; }
 .user-block { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .user-avatar { background: var(--color-primary); color: #fff; font-size: 14px; flex-shrink: 0; }
 .user-name { color: #303133; font-size: 14px; font-weight: 500; }
@@ -145,6 +174,7 @@ onMounted(() => {
     font: inherit;
     text-align: left;
   }
+  .mobile-msg-badge :deep(a) { width: 100%; }
   .mobile-panel a.router-link-active { border-color: #c9e4ff; color: var(--color-primary); background: #f2f8ff; }
 }
 </style>

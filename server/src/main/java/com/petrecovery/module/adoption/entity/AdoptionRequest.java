@@ -14,6 +14,9 @@ public class AdoptionRequest {
     private Long applicantId;
     private Long ownerId;
     private String message;
+    private String contact;
+    private String livingCondition;
+    private String petExperience;
     private String status;
 
     @TableField(fill = FieldFill.INSERT)

@@ -28,7 +28,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import AMapLoader from '@amap/amap-jsapi-loader'
+import { ElMessage } from 'element-plus'
+import { loadAmap } from '@/utils/amap'
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
@@ -49,13 +50,7 @@ let AMap = null
 let searchTimer = null
 
 onMounted(() => {
-  window._AMapSecurityConfig = {
-    securityJsCode: 'd2a114ab986fe29825688ec540030b5a',
-  }
-
-  AMapLoader.load({
-    key: 'eb4473d0bf626ceed61dbb79c86ba988',
-    version: '2.0',
+  loadAmap({
     plugins: ['AMap.Geocoder', 'AMap.PlaceSearch', 'AMap.AutoComplete'],
   }).then((AMapInstance) => {
     AMap = AMapInstance
@@ -88,6 +83,8 @@ onMounted(() => {
         }
       })
     })
+  }).catch((error) => {
+    ElMessage.error(error.message || '地图加载失败')
   })
 })
 

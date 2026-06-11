@@ -16,6 +16,12 @@
           </div>
           <div class="profile-id">专属ID: {{ userInfo?.id }}</div>
           <div class="profile-email">{{ userInfo?.email }}</div>
+          <div class="profile-phone-row">
+            <span>联系电话：{{ userInfo?.phone || '未填写' }}</span>
+            <el-button size="small" type="primary" link @click="openPhoneDialog">
+              {{ userInfo?.hasPhone ? '修改' : '添加' }}
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -63,6 +69,19 @@
         </template>
       </el-dialog>
     </el-card>
+
+    <el-dialog v-model="showPhoneDialog" title="常备联系电话" width="420px">
+      <el-form label-width="80px">
+        <el-form-item label="联系电话" required>
+          <el-input v-model.trim="phoneForm.phone" placeholder="请输入手机号或联系电话" maxlength="20" />
+        </el-form-item>
+      </el-form>
+      <p class="phone-tip">号码会加密保存。平时仅脱敏展示；当你和对方因线索建立联系后，双方可在消息中心查看完整号码。</p>
+      <template #footer>
+        <el-button @click="showPhoneDialog = false">取消</el-button>
+        <el-button type="primary" :loading="phoneLoading" @click="submitPhone">保存</el-button>
+      </template>
+    </el-dialog>
 
     <el-tabs class="profile-tabs" type="border-card">
       <el-tab-pane label="我发布的寻宠">
@@ -117,7 +136,10 @@
             <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
           </el-table-column>
           <el-table-column prop="applicantName" label="申请人" width="100" />
-          <el-table-column prop="message" label="留言" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="contact" label="联系方式" width="140" show-overflow-tooltip />
+          <el-table-column prop="livingCondition" label="居住条件" min-width="170" show-overflow-tooltip />
+          <el-table-column prop="petExperience" label="养宠经验" min-width="170" show-overflow-tooltip />
+          <el-table-column prop="message" label="留言" min-width="150" show-overflow-tooltip />
           <el-table-column prop="status" label="状态" width="100">
             <template #default="{ row }">
               <el-tag :type="adoptStatusTagType(row.status)">{{ adoptStatusMap[row.status] }}</el-tag>
@@ -141,7 +163,10 @@
             <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
           </el-table-column>
           <el-table-column prop="ownerName" label="发布人" width="100" />
-          <el-table-column prop="message" label="留言" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="contact" label="联系方式" width="140" show-overflow-tooltip />
+          <el-table-column prop="livingCondition" label="居住条件" min-width="170" show-overflow-tooltip />
+          <el-table-column prop="petExperience" label="养宠经验" min-width="170" show-overflow-tooltip />
+          <el-table-column prop="message" label="留言" min-width="150" show-overflow-tooltip />
           <el-table-column prop="status" label="状态" width="100">
             <template #default="{ row }">
               <el-tag :type="adoptStatusTagType(row.status)">{{ adoptStatusMap[row.status] }}</el-tag>
@@ -150,6 +175,44 @@
           <el-table-column prop="createTime" label="申请时间" width="170" />
         </el-table>
         <el-empty v-else description="暂无领养申请" />
+      </el-tab-pane>
+
+      <el-tab-pane label="领养记录">
+        <el-table v-if="adoptionRecords.length" :data="adoptionRecords" stripe style="width: 100%">
+          <el-table-column prop="animalType" label="档案类型" width="100">
+            <template #default="{ row }">{{ typeMap[row.animalType] || row.animalType }}</template>
+          </el-table-column>
+          <el-table-column prop="archiveName" label="动物昵称" width="110">
+            <template #default="{ row }">{{ row.archiveName || '无' }}</template>
+          </el-table-column>
+          <el-table-column prop="adopterName" label="领养人" width="100" />
+          <el-table-column prop="ownerName" label="发布人" width="100" />
+          <el-table-column prop="contact" label="联系方式" width="140" show-overflow-tooltip />
+          <el-table-column prop="livingCondition" label="居住条件" min-width="170" show-overflow-tooltip />
+          <el-table-column prop="petExperience" label="养宠经验" min-width="170" show-overflow-tooltip />
+          <el-table-column prop="followUpStatus" label="回访状态" width="120">
+            <template #default="{ row }">
+              <el-tag :type="followUpStatusTagType(row.followUpStatus)">{{ followUpStatusMap[row.followUpStatus] || row.followUpStatus }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="通过时间" width="170" />
+          <el-table-column label="回访维护" width="150">
+            <template #default="{ row }">
+              <el-select
+                v-if="isRecordOwner(row)"
+                :model-value="row.followUpStatus"
+                size="small"
+                @change="status => handleFollowUp(row, status)"
+              >
+                <el-option label="待回访" value="PENDING" />
+                <el-option label="已回访" value="VISITED" />
+                <el-option label="异常" value="ABNORMAL" />
+              </el-select>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-else description="暂无领养记录" />
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -176,6 +239,10 @@ const avatarLoading = ref(false)
 const certUploading = ref(false)
 const incomingRequests = ref([])
 const myRequests = ref([])
+const adoptionRecords = ref([])
+const showPhoneDialog = ref(false)
+const phoneLoading = ref(false)
+const phoneForm = ref({ phone: '' })
 const uploadHeaders = computed(() => ({
   Authorization: `Bearer ${userStore.token}`
 }))
@@ -183,6 +250,10 @@ const uploadHeaders = computed(() => ({
 const adoptStatusMap = { PENDING: '待处理', APPROVED: '已通过', REJECTED: '已拒绝' }
 function adoptStatusTagType(status) {
   return { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger' }[status] || 'info'
+}
+const followUpStatusMap = { PENDING: '待回访', VISITED: '已回访', ABNORMAL: '异常' }
+function followUpStatusTagType(status) {
+  return { PENDING: 'warning', VISITED: 'success', ABNORMAL: 'danger' }[status] || 'info'
 }
 const hasPendingIncoming = computed(() => incomingRequests.value.some(r => r.status === 'PENDING'))
 
@@ -202,20 +273,27 @@ function statusTagType(status) {
   return { PENDING: 'warning', ACTIVE: 'primary', REJECTED: 'danger', RESOLVED: 'success' }[status] || 'info'
 }
 
+function openPhoneDialog() {
+  phoneForm.value.phone = ''
+  showPhoneDialog.value = true
+}
+
 async function loadData() {
   loading.value = true
   try {
-    const [myRes, cluedRes, incomingRes, myAdoptRes] = await Promise.all([
+    const [myRes, cluedRes, incomingRes, myAdoptRes, recordsRes] = await Promise.all([
       postApi.my(),
       postApi.clued(),
       adoptionApi.incoming(),
       adoptionApi.my(),
+      adoptionApi.records(),
       userStore.fetchProfile(),
     ])
     myPosts.value = myRes.data || []
     cluedPosts.value = cluedRes.data || []
     incomingRequests.value = incomingRes.data || []
     myRequests.value = myAdoptRes.data || []
+    adoptionRecords.value = recordsRes.data || []
   } catch { /* ignore */ }
   loading.value = false
 }
@@ -289,6 +367,27 @@ async function submitCert() {
   certLoading.value = false
 }
 
+async function submitPhone() {
+  const phone = phoneForm.value.phone.trim()
+  if (!phone) {
+    ElMessage.warning('请填写联系电话')
+    return
+  }
+  if (!/^\+?\d[\d\s-]{6,19}$/.test(phone)) {
+    ElMessage.warning('联系电话格式不正确')
+    return
+  }
+  phoneLoading.value = true
+  try {
+    const res = await userApi.updatePhone(phone)
+    userStore.userInfo = res.data
+    sessionStorage.setItem('userInfo', JSON.stringify(res.data))
+    ElMessage.success('联系电话已保存')
+    showPhoneDialog.value = false
+  } catch { /* ignore */ }
+  phoneLoading.value = false
+}
+
 async function handleDeletePost(row) {
   try {
     await ElMessageBox.confirm('确定要删除这条寻宠启事吗？', '提示', { type: 'warning', confirmButtonText: '确定', cancelButtonText: '取消' })
@@ -321,12 +420,30 @@ async function handleReview(row, action) {
     ElMessage.success(`已${label}`)
   } catch { /* ignore */ }
   // 重新从服务器加载列表，确保状态同步
-  const [incomingRes, myAdoptRes] = await Promise.all([
+  const [incomingRes, myAdoptRes, recordsRes] = await Promise.all([
     adoptionApi.incoming(),
     adoptionApi.my(),
+    adoptionApi.records(),
   ])
   incomingRequests.value = incomingRes.data || []
   myRequests.value = myAdoptRes.data || []
+  adoptionRecords.value = recordsRes.data || []
+}
+
+function isRecordOwner(row) {
+  return userInfo.value?.id === row.ownerId
+}
+
+async function handleFollowUp(row, status) {
+  if (status === row.followUpStatus) return
+  const oldStatus = row.followUpStatus
+  row.followUpStatus = status
+  try {
+    await adoptionApi.updateFollowUp(row.id, status)
+    ElMessage.success('回访状态已更新')
+  } catch {
+    row.followUpStatus = oldStatus
+  }
 }
 
 onMounted(loadData)
@@ -342,6 +459,8 @@ onMounted(loadData)
 .profile-name { font-size: 22px; font-weight: 600; color: #303133; }
 .profile-id { font-size: 13px; color: #909399; margin-bottom: 4px; }
 .profile-email { font-size: 14px; color: #606266; }
+.profile-phone-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 14px; color: #606266; }
+.phone-tip { margin: 0; color: #909399; font-size: 13px; line-height: 1.7; }
 .cert-row { display: flex; align-items: center; justify-content: space-between; }
 .section-card { margin-bottom: 20px; }
 .profile-tabs { margin-bottom: 20px; overflow-x: auto; }
@@ -355,6 +474,7 @@ onMounted(loadData)
   .profile-header { align-items: flex-start; gap: 16px; }
   .profile-avatar { width: 64px !important; height: 64px !important; }
   .profile-name-row { flex-wrap: wrap; }
+  .profile-phone-row { flex-wrap: wrap; }
   .cert-row { display: grid; gap: 10px; }
   .profile-tabs :deep(.el-tabs__nav) { white-space: nowrap; }
   .profile-tabs :deep(.el-tabs__content) { min-height: 220px; padding: 12px; }

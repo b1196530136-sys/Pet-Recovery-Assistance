@@ -41,6 +41,34 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, PetSearchPost> impl
     }
 
     @Override
+    public PetSearchPost updatePost(PetSearchPost post, Long userId) {
+        PetSearchPost existing = getById(post.getId());
+        if (existing == null) {
+            throw new RuntimeException("寻宠启事不存在");
+        }
+        if (!existing.getUserId().equals(userId)) {
+            throw new RuntimeException("无权修改此寻宠启事");
+        }
+        if (!"REJECTED".equals(existing.getStatus()) && !"PENDING".equals(existing.getStatus())) {
+            throw new RuntimeException("当前状态不允许重新提交审核");
+        }
+        existing.setPetType(post.getPetType());
+        existing.setBreed(post.getBreed());
+        existing.setPetName(post.getPetName());
+        existing.setPhotos(post.getPhotos());
+        existing.setLostTime(post.getLostTime());
+        existing.setLongitude(post.getLongitude());
+        existing.setLatitude(post.getLatitude());
+        existing.setAddress(post.getAddress());
+        existing.setReward(post.getReward());
+        existing.setDescription(post.getDescription());
+        existing.setStatus("PENDING");
+        existing.setRejectReason(null);
+        updateById(existing);
+        return existing;
+    }
+
+    @Override
     public IPage<PetSearchPost> searchPosts(PostSearchRequest request) {
         LambdaQueryWrapper<PetSearchPost> wrapper = new LambdaQueryWrapper<>();
         if (request.getPetType() != null && !request.getPetType().isEmpty()) {

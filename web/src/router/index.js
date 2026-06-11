@@ -35,6 +35,7 @@ const routes = [
       { path: 'posts', name: 'AdminPostReview', component: () => import('@/views/admin/PostReview.vue') },
       { path: 'archives', name: 'AdminArchiveReview', component: () => import('@/views/admin/ArchiveReview.vue') },
       { path: 'certifications', name: 'AdminCertReview', component: () => import('@/views/admin/CertReview.vue') },
+      { path: 'reports', name: 'AdminReports', component: () => import('@/views/admin/ReportReview.vue') },
       { path: 'users', name: 'AdminUserManage', component: () => import('@/views/admin/UserManage.vue') },
       { path: 'front/posts', name: 'AdminFrontPosts', component: () => import('@/views/admin/AdminIframeView.vue') },
       { path: 'front/archives', name: 'AdminFrontArchives', component: () => import('@/views/admin/AdminIframeView.vue') },

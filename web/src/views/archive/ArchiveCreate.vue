@@ -20,7 +20,7 @@
           </el-form-item>
         </section>
 
-        <section v-if="!isEdit" class="form-section">
+        <section v-if="!isEdit || editingRejectedArchive" class="form-section">
           <h3>发现位置</h3>
           <el-form-item label="发现位置" required class="map-form-item">
             <AmapPicker v-model="mapLocation" />
@@ -63,6 +63,7 @@
             <el-upload
               action="/api/upload/image"
               list-type="picture-card"
+              v-model:file-list="uploadFileList"
               accept="image/*"
               name="file"
               :headers="uploadHeaders"
@@ -90,7 +91,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, watch, onMounted } from 'vue'
+import { reactive, computed, watch, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft } from '@element-plus/icons-vue'
@@ -102,8 +103,10 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const isEdit = computed(() => !!route.query.id)
+const editingRejectedArchive = ref(false)
 const form = reactive({ id: null, animalType: 'cat', customAnimalType: '', name: '', healthStatus: '', neuteredStatus: '', immuneStatus: '', placementStatus: 'observing', description: '', photos: '', longitude: '', latitude: '', address: '' })
 const photoUrls = reactive([])
+const uploadFileList = ref([])
 const mapLocation = reactive({ lng: '', lat: '', address: '' })
 
 const uploadHeaders = computed(() => ({
@@ -123,16 +126,20 @@ function beforePhotoUpload(file) {
   return true
 }
 
-function onPhotoSuccess(response) {
+function syncPhotoUrls(uploadFiles) {
+  photoUrls.splice(0, photoUrls.length, ...uploadFiles.map(file => file.response?.data || file.url).filter(Boolean))
+  form.photos = photoUrls.join(',')
+}
+
+function onPhotoSuccess(response, file, uploadFiles) {
   if (response.code === 200 && response.data) {
-    photoUrls.push(response.data)
-    form.photos = photoUrls.join(',')
+    file.url = response.data
+    syncPhotoUrls(uploadFiles)
   }
 }
 
-function onPhotoRemove() {
-  photoUrls.pop()
-  form.photos = photoUrls.join(',')
+function onPhotoRemove(file, uploadFiles) {
+  syncPhotoUrls(uploadFiles)
 }
 
 watch(mapLocation, (val) => {
@@ -160,6 +167,7 @@ onMounted(async () => {
   if (isEdit.value) {
     const res = await archiveApi.detail(route.query.id)
     const data = res.data
+    editingRejectedArchive.value = data.status === 'REJECTED'
     Object.assign(form, {
       id: data.id,
       animalType: data.animalType,
@@ -176,10 +184,18 @@ onMounted(async () => {
     })
     if (data.photos) {
       photoUrls.splice(0, photoUrls.length, ...data.photos.split(',').filter(Boolean))
+      uploadFileList.value = photoUrls.map((url, index) => ({ name: `照片${index + 1}`, url: getPhotoUrl(url) }))
     }
     Object.assign(mapLocation, { lng: data.longitude || '', lat: data.latitude || '', address: data.address || '' })
   }
 })
+
+function getPhotoUrl(photo) {
+  if (!photo) return ''
+  if (photo.startsWith('http')) return photo
+  if (photo.startsWith('/')) return photo
+  return `/upload/${photo}`
+}
 </script>
 
 <style scoped>

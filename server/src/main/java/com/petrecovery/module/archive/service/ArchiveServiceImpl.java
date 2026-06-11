@@ -46,6 +46,9 @@ public class ArchiveServiceImpl extends ServiceImpl<ArchiveMapper, StrayAnimalAr
             pending.put("description", archive.getDescription() != null ? archive.getDescription() : existing.getDescription());
             existing.setPendingData(objectMapper.writeValueAsString(pending));
             // 修改时保持原状态(APPROVED)，不改为PENDING，确保档案大厅仍显示原数据
+            if ("REJECTED".equals(existing.getStatus())) {
+                existing.setStatus("PENDING");
+            }
             existing.setRejectReason(null);
             updateById(existing);
         } catch (JsonProcessingException e) {
@@ -116,7 +119,8 @@ public class ArchiveServiceImpl extends ServiceImpl<ArchiveMapper, StrayAnimalAr
         StrayAnimalArchive archive = getById(id);
         if (archive == null) throw new RuntimeException("档案不存在");
 
-        if (archive.getPendingData() != null && !archive.getPendingData().isBlank()) {
+        if (archive.getPendingData() != null && !archive.getPendingData().isBlank()
+                && "APPROVED".equals(archive.getStatus())) {
             // 有待审修改内容：仅驳回修改，不清除档案，恢复为已通过状态
             LambdaUpdateWrapper<StrayAnimalArchive> uw = new LambdaUpdateWrapper<>();
             uw.eq(StrayAnimalArchive::getId, id)
@@ -126,9 +130,12 @@ public class ArchiveServiceImpl extends ServiceImpl<ArchiveMapper, StrayAnimalAr
             update(uw);
         } else {
             // 新建档案被驳回
-            archive.setStatus("REJECTED");
-            archive.setRejectReason(reason);
-            updateById(archive);
+            LambdaUpdateWrapper<StrayAnimalArchive> uw = new LambdaUpdateWrapper<>();
+            uw.eq(StrayAnimalArchive::getId, id)
+              .set(StrayAnimalArchive::getPendingData, null)
+              .set(StrayAnimalArchive::getStatus, "REJECTED")
+              .set(StrayAnimalArchive::getRejectReason, reason);
+            update(uw);
         }
     }
 }

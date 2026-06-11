@@ -40,6 +40,12 @@ public class PostController {
         return Result.success(postService.createPost(post, userId));
     }
 
+    @PutMapping("/update")
+    public Result<?> update(@RequestBody PetSearchPost post, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        return Result.success(postService.updatePost(post, userId));
+    }
+
     @PostMapping("/search")
     public Result<?> search(@RequestBody PostSearchRequest request) {
         return Result.success(postService.searchPosts(request));

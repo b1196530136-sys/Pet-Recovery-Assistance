@@ -7,6 +7,7 @@ export const useUserStore = defineStore('user', () => {
   const token = ref('')
   const userInfo = ref(null)
   const unreadCount = ref(0)
+  const systemUnreadCount = ref(0)
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => userInfo.value?.role === 'ADMIN')
@@ -49,7 +50,9 @@ export const useUserStore = defineStore('user', () => {
   async function fetchUnread() {
     try {
       const res = await messageApi.unread()
-      unreadCount.value = res.data?.length || 0
+      const unread = res.data || []
+      unreadCount.value = unread.length
+      systemUnreadCount.value = unread.filter(msg => msg.msgType === 2).length
     } catch { /* ignore */ }
   }
 
@@ -71,5 +74,5 @@ export const useUserStore = defineStore('user', () => {
     clearToken()
   }
 
-  return { token, userInfo, unreadCount, isLoggedIn, isAdmin, isCertified, isPendingCert, setToken, clearToken, restoreSession, fetchProfile, fetchUnread, login, loginByCode, logout }
+  return { token, userInfo, unreadCount, systemUnreadCount, isLoggedIn, isAdmin, isCertified, isPendingCert, setToken, clearToken, restoreSession, fetchProfile, fetchUnread, login, loginByCode, logout }
 })

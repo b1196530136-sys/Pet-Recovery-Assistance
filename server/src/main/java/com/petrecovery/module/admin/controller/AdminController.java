@@ -1,6 +1,7 @@
 package com.petrecovery.module.admin.controller;
 
 import com.petrecovery.common.Result;
+import com.petrecovery.module.admin.dto.ReportHandleRequest;
 import com.petrecovery.module.admin.service.AdminService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -100,6 +101,22 @@ public class AdminController {
     public Result<?> dashboard(HttpServletRequest request) {
         checkAdmin(request);
         return Result.success(adminService.getDashboardData());
+    }
+
+    @GetMapping("/reports")
+    public Result<?> reports(@RequestParam(defaultValue = "false") boolean all, HttpServletRequest request) {
+        checkAdmin(request);
+        return Result.success(all ? adminService.getAllReports() : adminService.getPendingReports());
+    }
+
+    @PostMapping("/report/{reportId}/handle")
+    public Result<?> handleReport(@PathVariable Long reportId,
+                                  @RequestBody ReportHandleRequest body,
+                                  HttpServletRequest request) {
+        checkAdmin(request);
+        Long adminUserId = (Long) request.getAttribute("userId");
+        adminService.handleReport(reportId, adminUserId, body);
+        return Result.success();
     }
 
     // ===== 台账导出 =====

@@ -42,7 +42,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '@/api/admin'
 
 const list = ref([])
@@ -59,7 +59,13 @@ async function approve(row) {
 }
 
 async function reject(row) {
-  await adminApi.reviewPost(row.id, 'REJECTED')
+  const { value } = await ElMessageBox.prompt('请填写驳回原因，用户会在系统消息中看到并可据此修改。', '驳回寻宠启事', {
+    confirmButtonText: '确定驳回',
+    cancelButtonText: '取消',
+    inputPlaceholder: '如：照片不清晰、缺少关键描述、地点信息不完整',
+    inputValidator: val => !!val?.trim() || '请填写驳回原因',
+  })
+  await adminApi.reviewPost(row.id, 'REJECTED', value)
   ElMessage.success('已驳回')
   load()
 }

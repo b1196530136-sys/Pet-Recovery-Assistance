@@ -24,11 +24,12 @@
         <template #default="{ row }">
           <el-tag :type="row.status === 'PENDING' ? 'warning' : 'success'" size="small">{{ statusMap[row.status] || row.status }}</el-tag>
           <el-tag v-if="row.isUpdate" type="info" size="small" style="margin-left: 4px">修改</el-tag>
+          <el-tag v-else-if="row.hasPendingData" type="warning" size="small" style="margin-left: 4px">重提</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="260">
         <template #default="{ row }">
-          <el-button v-if="row.isUpdate" size="small" type="primary" plain @click="showDiff(row)">查看修改</el-button>
+          <el-button v-if="row.hasPendingData" size="small" type="primary" plain @click="showDiff(row)">查看修改</el-button>
           <el-button v-if="row.status === 'PENDING' || row.isUpdate" size="small" type="success" @click="approve(row)">通过</el-button>
           <el-button v-if="row.status === 'PENDING' || row.isUpdate" size="small" type="danger" @click="reject(row)">驳回</el-button>
           <span v-else>-</span>
@@ -156,13 +157,15 @@ async function approve(row) {
 }
 
 async function reject(row) {
-  const hint = row.isUpdate ? '将仅驳回修改内容，原档案保留' : '该档案将被驳回删除'
-  await ElMessageBox.confirm(`确定要驳回吗？${hint}`, '确认驳回', {
+  const hint = row.isUpdate ? '将仅驳回修改内容，原档案保留' : '该档案将被驳回'
+  const { value } = await ElMessageBox.prompt(`确定要驳回吗？${hint}`, '确认驳回', {
     confirmButtonText: '确定驳回',
     cancelButtonText: '取消',
+    inputPlaceholder: '请填写驳回原因',
+    inputValidator: val => !!val?.trim() || '请填写驳回原因',
     type: 'warning',
   })
-  await adminApi.reviewArchive(row.id, 'REJECTED')
+  await adminApi.reviewArchive(row.id, 'REJECTED', value)
   ElMessage.success('已驳回')
   load()
 }

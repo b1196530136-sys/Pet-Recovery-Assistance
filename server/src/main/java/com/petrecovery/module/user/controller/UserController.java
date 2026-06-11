@@ -1,6 +1,7 @@
 package com.petrecovery.module.user.controller;
 
 import com.petrecovery.common.Result;
+import com.petrecovery.common.util.PhoneCryptoUtil;
 import com.petrecovery.config.JwtConfig;
 import com.petrecovery.module.user.dto.LoginRequest;
 import com.petrecovery.module.user.entity.SysUser;
@@ -19,11 +20,14 @@ public class UserController {
     private final UserService userService;
     private final JwtConfig jwtConfig;
     private final VerifyCodeService verifyCodeService;
+    private final PhoneCryptoUtil phoneCryptoUtil;
 
-    public UserController(UserService userService, JwtConfig jwtConfig, VerifyCodeService verifyCodeService) {
+    public UserController(UserService userService, JwtConfig jwtConfig, VerifyCodeService verifyCodeService,
+                          PhoneCryptoUtil phoneCryptoUtil) {
         this.userService = userService;
         this.jwtConfig = jwtConfig;
         this.verifyCodeService = verifyCodeService;
+        this.phoneCryptoUtil = phoneCryptoUtil;
     }
 
     @PostMapping("/register")
@@ -123,6 +127,14 @@ public class UserController {
         return Result.success();
     }
 
+    @PostMapping("/update-phone")
+    public Result<?> updatePhone(HttpServletRequest request, @RequestBody Map<String, String> body) {
+        Long userId = (Long) request.getAttribute("userId");
+        userService.updatePhone(userId, body.get("phone"));
+        SysUser user = userService.getById(userId);
+        return Result.success(toPrivateMap(user));
+    }
+
     private Map<String, Object> toPublicMap(SysUser user) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", user.getId());
@@ -136,7 +148,8 @@ public class UserController {
     private Map<String, Object> toPrivateMap(SysUser user) {
         Map<String, Object> map = toPublicMap(user);
         map.put("email", user.getEmail());
-        map.put("phone", user.getPhone());
+        map.put("phone", phoneCryptoUtil.mask(user.getPhone()));
+        map.put("hasPhone", phoneCryptoUtil.hasPhone(user.getPhone()));
         map.put("certCredentials", user.getCertCredentials());
         map.put("status", user.getStatus());
         return map;

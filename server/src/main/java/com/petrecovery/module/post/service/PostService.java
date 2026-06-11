@@ -10,6 +10,7 @@ import java.util.Map;
 
 public interface PostService extends IService<PetSearchPost> {
     PetSearchPost createPost(PetSearchPost post, Long userId);
+    PetSearchPost updatePost(PetSearchPost post, Long userId);
     IPage<PetSearchPost> searchPosts(PostSearchRequest request);
     boolean submitClue(Long postId, Long userId, String clueData);
     boolean resolvePost(Long postId, Long userId);

@@ -4,6 +4,9 @@ export const postApi = {
   create(data) {
     return request.post('/post/create', data)
   },
+  update(data) {
+    return request.put('/post/update', data)
+  },
   search(params) {
     return request.post('/post/search', params)
   },

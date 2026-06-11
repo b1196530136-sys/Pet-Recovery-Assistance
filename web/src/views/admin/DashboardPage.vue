@@ -88,6 +88,7 @@ const data = ref({
   pendingPosts: 0,
   pendingArchives: 0,
   pendingCertifications: 0,
+  pendingReports: 0,
   pendingTotal: 0,
 })
 
@@ -95,6 +96,7 @@ const pendingItems = computed(() => [
   { label: '寻宠启事待审', count: Number(data.value.pendingPosts || 0), path: '/admin/posts' },
   { label: '档案变更待审', count: Number(data.value.pendingArchives || 0), path: '/admin/archives' },
   { label: '认证申请待审', count: Number(data.value.pendingCertifications || 0), path: '/admin/certifications' },
+  { label: '用户举报待处理', count: Number(data.value.pendingReports || 0), path: '/admin/reports' },
 ])
 
 async function downloadExport(url, filename) {

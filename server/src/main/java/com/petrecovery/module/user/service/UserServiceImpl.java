@@ -2,6 +2,7 @@ package com.petrecovery.module.user.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.petrecovery.common.util.PhoneCryptoUtil;
 import com.petrecovery.common.constant.UserRole;
 import com.petrecovery.module.user.entity.SysUser;
 import com.petrecovery.module.user.mapper.UserMapper;
@@ -16,6 +17,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
     private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
     private static final int MAX_FAIL_COUNT = 5;
     private static final int LOCK_MINUTES = 30;
+    private static final String PHONE_PATTERN = "^\\+?\\d{7,20}$";
+
+    private final PhoneCryptoUtil phoneCryptoUtil;
+
+    public UserServiceImpl(PhoneCryptoUtil phoneCryptoUtil) {
+        this.phoneCryptoUtil = phoneCryptoUtil;
+    }
 
     @Override
     public SysUser login(String email, String password) {
@@ -107,6 +115,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
             user.setAvatar(avatar);
             updateById(user);
         }
+    }
+
+    @Override
+    public void updatePhone(Long userId, String phone) {
+        SysUser user = getById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        String normalized = phoneCryptoUtil.normalize(phone);
+        if (normalized != null && !normalized.matches(PHONE_PATTERN)) {
+            throw new RuntimeException("联系电话格式不正确");
+        }
+        user.setPhone(normalized == null ? null : phoneCryptoUtil.encrypt(normalized));
+        updateById(user);
     }
 
     @Override

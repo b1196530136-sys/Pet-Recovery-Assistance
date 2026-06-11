@@ -1,12 +1,14 @@
 package com.petrecovery.module.verify.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.petrecovery.module.verify.entity.VerifyCode;
 import com.petrecovery.module.verify.mapper.VerifyCodeMapper;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,12 +26,17 @@ public class VerifyCodeService extends ServiceImpl<VerifyCodeMapper, VerifyCode>
     @Value("${verify-code.debug-return:false}")
     private boolean debugReturnCode;
 
+    @Value("${spring.mail.username:}")
+    private String mailFrom;
+
     public VerifyCodeService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
     public String sendCode(String email, String clientIp) {
         checkRateLimit(email, clientIp);
+        cleanupExpiredCodes();
+        cleanupConsumedCodes(email);
 
         // 1分钟内不能重复发送
         VerifyCode last = getOne(new LambdaQueryWrapper<VerifyCode>()
@@ -55,7 +62,9 @@ public class VerifyCodeService extends ServiceImpl<VerifyCodeMapper, VerifyCode>
         boolean mailSent = true;
         try {
             SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom("b1196530136@163.com");
+            if (mailFrom != null && !mailFrom.isBlank()) {
+                msg.setFrom(mailFrom);
+            }
             msg.setTo(email);
             msg.setSubject("寻宠互助平台 - 邮箱验证码");
             msg.setText("您的验证码是：" + code + "，有效期5分钟。如非本人操作，请忽略。");
@@ -99,6 +108,7 @@ public class VerifyCodeService extends ServiceImpl<VerifyCodeMapper, VerifyCode>
     }
 
     public boolean verifyCode(String email, String code) {
+        cleanupExpiredCodes();
         VerifyCode vc = getOne(new LambdaQueryWrapper<VerifyCode>()
                 .eq(VerifyCode::getEmail, email)
                 .eq(VerifyCode::getCode, code)
@@ -107,10 +117,24 @@ public class VerifyCodeService extends ServiceImpl<VerifyCodeMapper, VerifyCode>
                 .orderByDesc(VerifyCode::getCreateTime)
                 .last("LIMIT 1"));
         if (vc != null) {
-            vc.setUsed(1);
-            updateById(vc);
-            return true;
+            return removeById(vc.getId());
         }
         return false;
+    }
+
+    @Scheduled(cron = "0 0 3 * * ?")
+    public void scheduledCleanupExpiredCodes() {
+        cleanupExpiredCodes();
+    }
+
+    private void cleanupExpiredCodes() {
+        remove(new LambdaQueryWrapper<VerifyCode>()
+                .le(VerifyCode::getExpireAt, LocalDateTime.now()));
+    }
+
+    private void cleanupConsumedCodes(String email) {
+        remove(new LambdaUpdateWrapper<VerifyCode>()
+                .eq(VerifyCode::getEmail, email)
+                .eq(VerifyCode::getUsed, 1));
     }
 }

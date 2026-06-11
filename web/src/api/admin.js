@@ -36,4 +36,10 @@ export const adminApi = {
   dashboard() {
     return request.get('/admin/dashboard')
   },
+  reports(params) {
+    return request.get('/admin/reports', { params })
+  },
+  handleReport(reportId, data) {
+    return request.post(`/admin/report/${reportId}/handle`, data)
+  },
 }

@@ -130,7 +130,9 @@ public class ArchiveController {
         Map<String, Object> result = new HashMap<>();
         result.put("records", pageResult.getRecords().stream().map(arch -> {
             Map<String, Object> item = convertToMap(arch);
-            item.put("isUpdate", arch.getPendingData() != null && !arch.getPendingData().isBlank());
+            boolean hasPendingData = arch.getPendingData() != null && !arch.getPendingData().isBlank();
+            item.put("hasPendingData", hasPendingData);
+            item.put("isUpdate", hasPendingData && "APPROVED".equals(arch.getStatus()));
             item.put("pendingData", arch.getPendingData());
             return item;
         }).toList());

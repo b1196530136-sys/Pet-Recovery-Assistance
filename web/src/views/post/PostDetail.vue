@@ -113,7 +113,7 @@ import { postApi } from '@/api/post'
 import { messageApi } from '@/api/message'
 import { useUserStore } from '@/store/user'
 import AmapPicker from '@/components/map/AmapPicker.vue'
-import AMapLoader from '@amap/amap-jsapi-loader'
+import { loadAmap } from '@/utils/amap'
 
 const route = useRoute()
 const router = useRouter()
@@ -208,13 +208,7 @@ onMounted(async () => {
 
   if (post.value?.longitude && post.value?.latitude) {
     await nextTick()
-    window._AMapSecurityConfig = {
-      securityJsCode: 'd2a114ab986fe29825688ec540030b5a',
-    }
-    AMapLoader.load({
-      key: 'eb4473d0bf626ceed61dbb79c86ba988',
-      version: '2.0',
-    }).then(async (AMap) => {
+    loadAmap().then(async (AMap) => {
       const lng = parseFloat(post.value.longitude)
       const lat = parseFloat(post.value.latitude)
       const map = new AMap.Map(mapContainer.value, {
@@ -258,6 +252,8 @@ onMounted(async () => {
           }
         } catch { /* ignore */ }
       }
+    }).catch((error) => {
+      ElMessage.error(error.message || '地图加载失败')
     })
   }
 })

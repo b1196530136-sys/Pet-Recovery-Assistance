@@ -8,12 +8,14 @@ spring:
     name: pet-recovery-server
   profiles:
     active: dev
+  config:
+    import: optional:file:./.env[.properties],optional:file:./server/.env[.properties]
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/pet_recovery?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    url: ${DB_URL:jdbc:mysql://localhost:3306/pet_recovery?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
 
   servlet:
     multipart:
@@ -21,10 +23,10 @@ spring:
       max-request-size: 50MB
 
   mail:
-    host: smtp.163.com
-    port: 465
-    username: b1196530136@163.com
-    password: DTcnwuLj2yYffyPD
+    host: ${MAIL_HOST:smtp.163.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -52,8 +54,8 @@ mybatis-plus:
 
 # JWT Configuration
 jwt:
-  secret: pet-recovery-secret-key-change-in-production
-  expiration: 86400000
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 # File Upload Storage
 upload:
@@ -66,12 +68,12 @@ upload:
 # 快瞳宠物图像相似度对比接口配置
 # 接口文档: https://ai.inspirvision.cn/s/api/recognitionComparedFromPath
 pet-recognition:
-  api-url: https://ai.inspirvision.cn/s/api/recognitionComparedFromPath
+  api-url: ${PET_RECOGNITION_API_URL:https://ai.inspirvision.cn/s/api/recognitionComparedFromPath}
   # Token获取接口: https://ai.inspirvision.cn/s/api/getAccessToken
-  token-url: https://ai.inspirvision.cn/s/api/getAccessToken
+  token-url: ${PET_RECOGNITION_TOKEN_URL:https://ai.inspirvision.cn/s/api/getAccessToken}
   # 快瞳官网注册后获取的 accessKey 和 accessSecret
-  access-key: APPID_02KS011b7cH29GsS
-  access-secret: 9991fe02f2541e432b2910b62ac3ed42
+  access-key: ${PET_RECOGNITION_ACCESS_KEY}
+  access-secret: ${PET_RECOGNITION_ACCESS_SECRET}
   # recogType: 0=鼻子(局部特征), 1=正脸
   recog-type: 1
   # petType: 0=狗, 1=猫
@@ -84,8 +86,7 @@ pet-recognition:
 image-hosting:
   provider: imgbb
   imgbb:
-    api-url: https://api.imgbb.com/1/upload
-    api-key: 9fec137da23ad3b1cf4263d14ab74e24
+    api-url: ${IMGBB_API_URL:https://api.imgbb.com/1/upload}
+    api-key: ${IMGBB_API_KEY}
     # 图片过期时间（秒），0=永不过期，86400=1天，604800=7天
     expiration: 604800
-
