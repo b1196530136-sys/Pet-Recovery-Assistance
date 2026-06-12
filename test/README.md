@@ -35,6 +35,7 @@ pytest
 ```
 
 Selenium 4 会优先使用 Selenium Manager 自动管理浏览器驱动。运行前请确保本机已安装对应浏览器。
+当前 Chrome 默认使用本机驱动路径：`D:\chromedriver-win64\chromedriver-win64\chromedriver.exe`。
 
 ## 常用配置
 
@@ -43,6 +44,7 @@ Selenium 4 会优先使用 Selenium Manager 自动管理浏览器驱动。运行
 ```text
 BASE_URL=http://localhost:5173
 BROWSER=chrome
+CHROME_DRIVER_PATH=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe
 HEADLESS=false
 EXPLICIT_WAIT=10
 SCREENSHOT_ON_FAILURE=true

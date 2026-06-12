@@ -4,12 +4,21 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.petrecovery.common.util.PhoneCryptoUtil;
 import com.petrecovery.common.constant.UserRole;
+import com.petrecovery.module.message.entity.SysImMessage;
+import com.petrecovery.module.message.entity.UserBlock;
+import com.petrecovery.module.message.mapper.MessageMapper;
+import com.petrecovery.module.message.mapper.UserBlockMapper;
+import com.petrecovery.module.post.entity.PetSearchPost;
+import com.petrecovery.module.post.mapper.PostMapper;
 import com.petrecovery.module.user.entity.SysUser;
 import com.petrecovery.module.user.mapper.UserMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements UserService {
@@ -20,9 +29,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
     private static final String PHONE_PATTERN = "^\\+?\\d{7,20}$";
 
     private final PhoneCryptoUtil phoneCryptoUtil;
+    private final PostMapper postMapper;
+    private final MessageMapper messageMapper;
+    private final UserBlockMapper userBlockMapper;
 
-    public UserServiceImpl(PhoneCryptoUtil phoneCryptoUtil) {
+    public UserServiceImpl(PhoneCryptoUtil phoneCryptoUtil, PostMapper postMapper,
+                           MessageMapper messageMapper, UserBlockMapper userBlockMapper) {
         this.phoneCryptoUtil = phoneCryptoUtil;
+        this.postMapper = postMapper;
+        this.messageMapper = messageMapper;
+        this.userBlockMapper = userBlockMapper;
     }
 
     @Override
@@ -139,5 +155,80 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, SysUser> implements
         }
         user.setPassword(ENCODER.encode(newPassword));
         updateById(user);
+    }
+
+    @Override
+    public Map<String, Object> getPublicProfile(Long targetUserId, Long viewerUserId) {
+        SysUser target = getById(targetUserId);
+        if (target == null || (target.getStatus() != null && target.getStatus() == 0)) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", target.getId());
+        result.put("nickname", target.getNickname());
+        result.put("avatar", target.getAvatar());
+        result.put("role", target.getRole());
+        result.put("createTime", target.getCreateTime());
+        result.put("hasPhone", phoneCryptoUtil.hasPhone(target.getPhone()));
+
+        boolean phoneVisible = canViewPhone(viewerUserId, targetUserId);
+        result.put("phoneVisible", phoneVisible);
+        result.put("phone", phoneVisible ? phoneCryptoUtil.decrypt(target.getPhone()) : null);
+
+        List<PetSearchPost> posts = postMapper.selectList(new LambdaQueryWrapper<PetSearchPost>()
+                .eq(PetSearchPost::getUserId, targetUserId)
+                .in(PetSearchPost::getStatus, "ACTIVE", "RESOLVED")
+                .orderByDesc(PetSearchPost::getCreateTime));
+        result.put("posts", posts.stream().map(this::toPublicPostMap).toList());
+        result.put("postCount", posts.size());
+        return result;
+    }
+
+    private boolean canViewPhone(Long viewerUserId, Long targetUserId) {
+        if (viewerUserId == null || targetUserId == null || viewerUserId.equals(targetUserId)) {
+            return false;
+        }
+        SysUser viewer = getById(viewerUserId);
+        SysUser target = getById(targetUserId);
+        if (viewer == null || target == null) {
+            return false;
+        }
+        if (!phoneCryptoUtil.hasPhone(viewer.getPhone()) || !phoneCryptoUtil.hasPhone(target.getPhone())) {
+            return false;
+        }
+        if (isBlockedEitherWay(viewerUserId, targetUserId)) {
+            return false;
+        }
+        return messageMapper.selectCount(new LambdaQueryWrapper<SysImMessage>()
+                .eq(SysImMessage::getMsgType, 1)
+                .and(w -> w.and(a -> a.eq(SysImMessage::getSenderId, viewerUserId)
+                                .eq(SysImMessage::getReceiverId, targetUserId))
+                        .or(a -> a.eq(SysImMessage::getSenderId, targetUserId)
+                                .eq(SysImMessage::getReceiverId, viewerUserId)))) > 0;
+    }
+
+    private boolean isBlockedEitherWay(Long userId, Long otherUserId) {
+        return userBlockMapper.selectCount(new LambdaQueryWrapper<UserBlock>()
+                .and(w -> w.and(a -> a.eq(UserBlock::getUserId, userId)
+                                .eq(UserBlock::getBlockedUserId, otherUserId))
+                        .or(a -> a.eq(UserBlock::getUserId, otherUserId)
+                                .eq(UserBlock::getBlockedUserId, userId)))) > 0;
+    }
+
+    private Map<String, Object> toPublicPostMap(PetSearchPost post) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", post.getId());
+        map.put("petType", post.getPetType());
+        map.put("breed", post.getBreed());
+        map.put("petName", post.getPetName());
+        map.put("photos", post.getPhotos());
+        map.put("lostTime", post.getLostTime());
+        map.put("address", post.getAddress());
+        map.put("reward", post.getReward());
+        map.put("description", post.getDescription());
+        map.put("status", post.getStatus());
+        map.put("createTime", post.getCreateTime());
+        return map;
     }
 }

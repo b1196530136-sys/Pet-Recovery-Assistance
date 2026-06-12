@@ -1,0 +1,16 @@
+case_id,test_title,email,verification_code,action,expected_result,expected_message,priority
+LGN-CODE-001,已注册邮箱发送登录验证码成功,b1196530136@163.com,,send_code,success,验证码已发送,P0
+LGN-CODE-002,发送验证码时邮箱为空或格式错误,,,send_code,failure,请先输入正确的邮箱,P1
+LGN-CODE-002,发送验证码时邮箱为空或格式错误,abc,,send_code,failure,请先输入正确的邮箱,P1
+LGN-CODE-003,未注册邮箱不能发送登录验证码,unregistered@test.com,,send_code,failure,邮箱未注册,P0
+LGN-CODE-004,普通用户使用正确验证码登录成功,b1196530136@163.com,123456,login,success,登录成功,P0
+LGN-CODE-005,管理员使用正确验证码登录成功,admin@petrecovery.com,123456,login,success,登录成功,P0
+LGN-CODE-006,验证码为空时提交登录,b1196530136@163.com,,login,failure,请输入验证码,P1
+LGN-CODE-007,验证码不是6位数字时提交登录,b1196530136@163.com,12345,login,failure,验证码为6位数字,P1
+LGN-CODE-007,验证码不是6位数字时提交登录,b1196530136@163.com,1234567,login,failure,验证码为6位数字,P1
+LGN-CODE-007,验证码不是6位数字时提交登录,b1196530136@163.com,12ab56,login,failure,验证码为6位数字,P1
+LGN-CODE-008,输入错误验证码登录失败,b1196530136@163.com,999999,login,failure,验证码错误或已过期,P0
+LGN-CODE-009,输入过期验证码登录失败,b1196530136@163.com,000000,login,failure,验证码错误或已过期,P0
+LGN-CODE-010,未注册邮箱使用验证码登录失败,unregistered@test.com,123456,login,failure,邮箱未注册,P0
+LGN-CODE-011,账号被封禁时不能使用验证码登录,banned@test.com,123456,login,failure,账号已被封禁,P0
+LGN-CODE-012,倒计时期间发送验证码按钮禁用,b1196530136@163.com,,send_code,success,按钮禁用且显示倒计时,P1

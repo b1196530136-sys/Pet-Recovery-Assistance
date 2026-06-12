@@ -17,7 +17,7 @@
           <el-tag :type="placementTagType[archive.placementStatus]" size="large">{{ placementMap[archive.placementStatus] || '未知' }}</el-tag>
           <h2>{{ typeMap[archive.animalType] || archive.animalType || '未知' }} · 电子档案</h2>
           <p class="detail-address">{{ archive.address }}</p>
-          <div class="publisher-info">
+          <div class="publisher-info" @click="openUserProfile(archive.userId)">
             <el-avatar :size="36" :src="archive.publisherAvatar || '/images/default-avatar.png'" />
             <span>发布人：{{ archive.publisherName || '匿名用户' }}</span>
           </div>
@@ -146,6 +146,15 @@ function getPhotoUrl(photo) {
   return `/upload/${photo}`
 }
 
+function openUserProfile(id) {
+  if (!id) return
+  if (String(userStore.userInfo?.id || '') === String(id)) {
+    router.push('/profile')
+    return
+  }
+  router.push(`/users/${id}`)
+}
+
 function handleEdit() {
   router.push({ path: '/archives/create', query: { id: archive.value.id } })
 }
@@ -223,7 +232,8 @@ onMounted(async () => {
 .detail-main { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 12px; padding: 8px 0; }
 .detail-main h2 { font-size: 30px; line-height: 1.25; color: var(--color-text); }
 .detail-address { color: var(--color-muted); line-height: 1.7; }
-.publisher-info { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f7f9fc; border: 1px solid #edf1f5; border-radius: 8px; color: #606266; font-size: 14px; }
+.publisher-info { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f7f9fc; border: 1px solid #edf1f5; border-radius: 8px; color: #606266; font-size: 14px; cursor: pointer; transition: border-color 0.18s ease, background 0.18s ease; }
+.publisher-info:hover { border-color: #b7eb8f; background: #f6ffed; }
 .action-hint { color: #667085; font-size: 13px; line-height: 1.7; }
 .action-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; }
 .detail-section { margin-top: 24px; }

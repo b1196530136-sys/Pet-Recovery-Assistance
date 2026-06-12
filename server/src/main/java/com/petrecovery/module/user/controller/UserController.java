@@ -7,6 +7,7 @@ import com.petrecovery.module.user.dto.LoginRequest;
 import com.petrecovery.module.user.entity.SysUser;
 import com.petrecovery.module.user.service.UserService;
 import com.petrecovery.module.verify.service.VerifyCodeService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -98,6 +99,16 @@ public class UserController {
         return Result.success(toPublicMap(user));
     }
 
+    @GetMapping("/public/{id}")
+    public Result<?> publicProfile(@PathVariable Long id, HttpServletRequest request) {
+        RequestUser viewer = resolveViewer(request);
+        try {
+            return Result.success(userService.getPublicProfile(id, viewer.userId()));
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
     @PostMapping("/reset-password")
     public Result<?> resetPassword(@RequestBody Map<String, String> body) {
         String email = body.get("email");
@@ -154,4 +165,23 @@ public class UserController {
         map.put("status", user.getStatus());
         return map;
     }
+
+    private RequestUser resolveViewer(HttpServletRequest request) {
+        Object userId = request.getAttribute("userId");
+        Object role = request.getAttribute("role");
+        if (userId instanceof Long id) {
+            return new RequestUser(id, role instanceof String r ? r : null);
+        }
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            try {
+                Claims claims = jwtConfig.parseToken(token.substring(7));
+                return new RequestUser(Long.parseLong(claims.getSubject()), claims.get("role", String.class));
+            } catch (Exception ignored) {
+            }
+        }
+        return new RequestUser(null, null);
+    }
+
+    private record RequestUser(Long userId, String role) {}
 }

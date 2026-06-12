@@ -1,5 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 
@@ -11,7 +12,8 @@ class BrowserFactory:
     def create():
         browser = settings.browser
         if browser == "chrome":
-            return webdriver.Chrome(options=_chrome_options())
+            service = ChromeService(executable_path=settings.chrome_driver_path)
+            return webdriver.Chrome(service=service, options=_chrome_options())
         if browser == "edge":
             return webdriver.Edge(options=_edge_options())
         if browser == "firefox":

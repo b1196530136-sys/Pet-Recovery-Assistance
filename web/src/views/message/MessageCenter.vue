@@ -15,7 +15,12 @@
                      class="conv-item"
                      :class="{ active: currentOtherId === conv.otherId }"
                      @click="selectConvByUser(conv.otherId)">
-                  <el-avatar :size="36" :src="getUserAvatar(conv.otherId)" style="flex-shrink: 0; margin-right: 10px;">
+                  <el-avatar
+                    :size="36"
+                    :src="getUserAvatar(conv.otherId)"
+                    class="conv-avatar clickable-avatar"
+                    @click.stop="openUserProfile(conv.otherId)"
+                  >
                   </el-avatar>
                   <div style="flex:1; min-width:0">
                     <div style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
@@ -91,7 +96,13 @@
                 <div v-for="msg in messages" :key="msg.id"
                      class="msg-item"
                      :class="{ mine: msg.senderId === userId }">
-                  <el-avatar v-if="msg.senderId !== userId" :size="36" :src="getUserAvatar(msg.senderId)" class="msg-avatar" />
+                  <el-avatar
+                    v-if="msg.senderId !== userId"
+                    :size="36"
+                    :src="getUserAvatar(msg.senderId)"
+                    class="msg-avatar clickable-avatar"
+                    @click.stop="openUserProfile(msg.senderId)"
+                  />
                   <div class="msg-content-wrap">
                     <div v-if="msg.msgType === 1" class="clue-card" @click="showClueDetail(msg)">
                       <div class="clue-card-header">
@@ -126,7 +137,13 @@
                       <el-button text size="small" @click.stop="openReportDialog(msg)">举报</el-button>
                     </div>
                   </div>
-                  <el-avatar v-if="msg.senderId === userId" :size="36" :src="getUserAvatar(msg.senderId)" class="msg-avatar" />
+                  <el-avatar
+                    v-if="msg.senderId === userId"
+                    :size="36"
+                    :src="getUserAvatar(msg.senderId)"
+                    class="msg-avatar clickable-avatar"
+                    @click.stop="openUserProfile(msg.senderId)"
+                  />
                 </div>
               </div>
               <el-empty v-else description="选择会话查看消息" />
@@ -308,6 +325,15 @@ const DEFAULT_AVATAR = '/images/default-avatar.png'
 function getUserAvatar(id) {
   if (id === userId.value) return userStore.userInfo?.avatar || DEFAULT_AVATAR
   return userCache.value[id]?.avatar || DEFAULT_AVATAR
+}
+
+function openUserProfile(id) {
+  if (!id) return
+  if (String(userId.value || '') === String(id)) {
+    router.push('/profile')
+    return
+  }
+  router.push(`/users/${id}`)
 }
 
 function parsePhotos(photos) {
@@ -647,6 +673,9 @@ onUnmounted(() => {
 .message-card :deep(.el-card__body) { min-height: 340px; }
 .conv-item { padding: 12px; cursor: pointer; display: flex; align-items: center; border-bottom: 1px solid #f0f0f0; }
 .conv-item .el-avatar { flex-shrink: 0; }
+.conv-avatar { margin-right: 10px; }
+.clickable-avatar { cursor: pointer; transition: box-shadow 0.18s ease, transform 0.18s ease; }
+.clickable-avatar:hover { box-shadow: 0 0 0 3px #d9ecff; transform: translateY(-1px); }
 .conv-item:hover, .conv-item.active { background: #ecf5ff; }
 .msg-list { max-height: 500px; overflow-y: auto; }
 .msg-item { display: flex; align-items: flex-start; margin-bottom: 16px; gap: 8px; }

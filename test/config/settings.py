@@ -25,10 +25,14 @@ def _int_env(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    base_url: str = os.getenv("BASE_URL", "http://localhost:5173")
+    base_url: str = os.getenv("BASE_URL", "http://localhost:3030")
     browser: str = os.getenv("BROWSER", "chrome").lower()
+    chrome_driver_path: str = os.getenv(
+        "CHROME_DRIVER_PATH",
+        r"D:\chromedriver-win64\chromedriver-win64\chromedriver.exe",
+    )
     headless: bool = _bool_env("HEADLESS", False)
-    implicit_wait: int = _int_env("IMPLICIT_WAIT", 0)
+    implicit_wait: int = _int_env("IMPLICIT_WAIT", 10)
     explicit_wait: int = _int_env("EXPLICIT_WAIT", 10)
     window_width: int = _int_env("WINDOW_WIDTH", 1440)
     window_height: int = _int_env("WINDOW_HEIGHT", 900)
