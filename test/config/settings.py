@@ -25,7 +25,7 @@ def _int_env(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    base_url: str = os.getenv("BASE_URL", "http://localhost:3030")
+    base_url: str = os.getenv("BASE_URL", "http://localhost:3000")
     browser: str = os.getenv("BROWSER", "chrome").lower()
     chrome_driver_path: str = os.getenv(
         "CHROME_DRIVER_PATH",

@@ -1,3 +1,4 @@
+from selenium.webdriver import Keys
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
@@ -43,9 +44,11 @@ class BasePage:
     def type_text(self, locator: tuple[str, str], text: str, clear: bool = True):
         element = self.visible(locator)
         if clear:
-            element.clear()
+            element.send_keys(Keys.CONTROL, "a")
+            element.send_keys(Keys.BACKSPACE)
         element.send_keys(text)
         return self
+
 
     def text_of(self, locator: tuple[str, str]) -> str:
         return self.visible(locator).text

@@ -1,6 +1,6 @@
 # Selenium + pytest UI Test Framework
 
-该目录是基于 Selenium、pytest 和 Page Object Model 的 UI 自动化测试框架骨架，当前只包含框架代码，不包含实际测试用例。
+该目录是基于 Selenium、pytest 和 Page Object Model 的 UI 自动化测试框架。当前登录模块用例已迁移为 Selenium 写法，测试数据来自 `data/` 下的 CSV 文件。
 
 ## 目录结构
 
@@ -28,24 +28,27 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-当前没有编写实际测试用例。后续在 `tests/` 下新增 `test_*.py` 用例文件后，再执行：
+先启动后端服务和前端 Vite 服务。前端默认端口为 `3000`，对应测试配置中的 `BASE_URL=http://localhost:3000`。
+
+再执行：
 
 ```powershell
 pytest
 ```
 
 Selenium 4 会优先使用 Selenium Manager 自动管理浏览器驱动。运行前请确保本机已安装对应浏览器。
-当前 Chrome 默认使用本机驱动路径：`D:\chromedriver-win64\chromedriver-win64\chromedriver.exe`。
+如果 `.env` 中的 `CHROME_DRIVER_PATH` 指向一个真实文件，则 Chrome 会优先使用该驱动；否则自动回退到 Selenium Manager。
 
 ## 常用配置
 
 配置可通过 `.env` 环境变量覆盖，常用项如下：
 
 ```text
-BASE_URL=http://localhost:5173
+BASE_URL=http://localhost:3000
 BROWSER=chrome
 CHROME_DRIVER_PATH=D:\chromedriver-win64\chromedriver-win64\chromedriver.exe
 HEADLESS=false
+IMPLICIT_WAIT=0
 EXPLICIT_WAIT=10
 SCREENSHOT_ON_FAILURE=true
 ```
@@ -55,3 +58,12 @@ SCREENSHOT_ON_FAILURE=true
 ## 后续编写用例约定
 
 页面行为封装在 `pages/` 下，测试用例只通过页面对象完成操作和断言。新增用例时放在 `tests/` 目录下，文件名使用 `test_*.py`。
+
+## Playwright 到 Selenium 的对应关系
+
+迁移后的测试代码不再依赖 Playwright fixture 或 locator API：
+
+- 浏览器启动统一由 `utils/browser_factory.py` 中的 Selenium WebDriver 创建。
+- 每个测试通过 `conftest.py` 的 `driver` fixture 获得独立浏览器实例。
+- 页面交互封装在 `pages/` 的 Page Object 中，使用 Selenium `By` locator、`WebDriverWait` 和 `expected_conditions`。
+- 截图使用 Selenium `driver.save_screenshot()`，失败时按日期保存到 `screenshots/`。
